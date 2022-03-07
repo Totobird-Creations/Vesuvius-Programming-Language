@@ -1,0 +1,17 @@
+// Vesuvius Programming Language : Example / Factorial
+
+
+
+extern std;
+
+build stdout = std::stdout;
+build stdin  = std::stdin;
+build conv   = std::convert;
+
+#[entry]
+pub func main() : Void {
+    stdout::write("Enter a number: ");
+    stdout::flush();
+    let input = stdin::input(filter="[0123456789]+");
+    stdout::writeln("\nFactorial of " + input + ".");
+};

@@ -1,0 +1,110 @@
+# Tokens:
+
+- HASH
+- LPARENTHESIS
+- RPARENTHESIS
+- LBRACKET
+- RBRACKET
+- LBRACE
+- RBRACE
+- LCARAT
+- RCARAT
+- COLON
+- DOUBLECOLON
+- PERIOD
+
+- EQUALS
+
+- PLUS
+- MINUS
+- ASTRISK
+- SLASH
+- DOUBLEASTRISK
+
+- IDENTIFIER(String)
+
+- CHAR(char)
+- STRING(String)
+- INTEGER(i64)
+- FLOAT(f64)
+
+
+
+
+
+# Parser:
+
+parser:
+- (statement_header SEMICOLON)*
+
+statement_header:
+- statement_visibility statement
+- IDENTIFIER("extern") IDENTIFIER
+- HASH LBRACKET {IDENTIFIER {COMMA IDENTIFIER}*}? RBRACKET statement
+
+statement_visibility:
+- IDENTIFIER("private")
+- IDENTIFIER("public")
+
+statement:
+- statement_import
+- statement_build
+- statement_function
+
+statement_import:
+- IDENTIFIER("use") IDENTIFIER {COLON IDENTIFIER}*
+
+statement_build:
+- IDENTIFIER("build") IDENTIFIER EQUALS IDENTIFIER {DOUBLECOLON IDENTIFIER}*
+
+statement_function:
+- IDENTIFIER("func") IDENTIFIER
+  LPAREN {statement_function_argument {COMMA statement_function_argument}*}? RPAREN COLON type
+  LBRACE {expression}* RBRACE
+
+statement_function_argument:
+- IDENTIFIER COLON type {EQUALS literal}?
+
+
+
+expression_base:
+- IDENTIFIER("let") {IDENTIFIER("mut")}* IDENTIFIER {COLON type}? EQUALS expression;
+- expression
+
+expression_addition:
+- expression_multiplication {{PLUS | MINUS} expression_multiplication}*
+
+expression_multiplication:
+- expression_power {{ASTRISK | SLASH} expression_power}*
+
+expression_power:
+- term {DOUBLEASTRISK term}*
+
+term:
+- IDENTIFIER {expression_identifier_mod}* {expression_identifier_action}?
+- literal
+
+
+expression_identifier_mod:
+- DOUBLECOLON IDENTIFIER
+- PERIOD IDENTIFIER
+- LBRACKET expression RBRACKET
+- LPARENTHESIS {expression {COMMA expression}}? RPARENTHESIS
+
+expression_identifier_action:
+- {PLUS | MINUS | ASTRISK | SLASH | DOUBLEASTRISK}? EQUALS expression
+
+
+type:
+- IDENTIFIER {LCARAT {type_argument {COMMA type_argument}*}? RCARAT}?
+
+type_argument:
+- literal
+- type
+
+literal:
+- IDENTIFIER
+- CHAR
+- STRING
+- INTEGER
+- FLOAT

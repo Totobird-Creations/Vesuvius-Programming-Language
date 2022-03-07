@@ -1,0 +1,9 @@
+// Vesuvius Programming Language : Example / Hello World
+
+
+
+build stdout = std::stdout;
+
+entry func main() : void {
+    print("Hello World!");
+}
