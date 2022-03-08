@@ -6,11 +6,11 @@ use crate::exception::Exception;
 
 #[derive(Clone)]
 pub struct Lexer {
-    script   : String,
-    position : data::Position,
-    ch       : char,
-    tokens   : Vec<data::Token>,
-    end      : bool
+        script   : String,
+    pub position : data::Position,
+        ch       : char,
+        tokens   : Vec<data::Token>,
+        end      : bool
 }
 impl Lexer {
 
@@ -98,7 +98,7 @@ impl Lexer {
                 self.advance();
             }
             else if (self.ch == ':') {
-                let start = self.position;
+                let start = self.position.clone();
                 self.advance();
                 if (self.ch == ':') {
                     self.push_token_start(data::TokenType::DoubleColon, start);
@@ -126,7 +126,7 @@ impl Lexer {
                 self.advance();
             }
             else if (self.ch == '*') {
-                let start = self.position;
+                let start = self.position.clone();
                 self.advance();
                 if (self.ch == '*') {
                     self.push_token_start(data::TokenType::DoubleAstrisk, start);
@@ -136,7 +136,7 @@ impl Lexer {
                 }
             }
             else if (self.ch == '/') {
-                let start = self.position;
+                let start = self.position.clone();
                 self.advance();
                 if (self.ch == '/') {
                     self.start_eol_comment();
@@ -170,7 +170,9 @@ impl Lexer {
                 exception::LexerException::new(
                     self.clone(),
                     exception::LexerExceptionType::IllegalCharacter,
-                    format!("Illegal character `{}` found.", self.ch)
+                    format!("Illegal character `{}` found.", self.ch),
+                    self.script.clone(),
+                    data::Range::new(self.position.clone(), self.position.clone())
                 ).dump();
             };
 
@@ -180,14 +182,14 @@ impl Lexer {
     }
 
     fn start_identifier(&mut self) -> () {
-        let     start      = self.position;
-        let mut end        = self.position;
+        let     start      = self.position.clone();
+        let mut end        = self.position.clone();
         let mut identifier = String::new();
         while ((! self.end) && (
             (String::from(data::ALPHABETIC) + "_").contains(self.ch)
         )) {
             identifier += self.ch.to_string().as_str();
-            end = self.position;
+            end = self.position.clone();
             self.advance();
         }
         self.push_token_start_end(
@@ -197,13 +199,15 @@ impl Lexer {
     }
 
     fn start_character(&mut self) -> () {
-        let     start = self.position;
+        let     start = self.position.clone();
         let mut ch    = ' ';
         if (self.ch != '\'') {
             exception::LexerException::new(
                 self.clone(),
                 exception::LexerExceptionType::MissingCharacter,
-                format!("Expected character `'` not found.")
+                format!("Expected character `'` not found."),
+                self.script.clone(),
+                data::Range::new(start, self.position.clone())
             ).dump();
         };
         self.advance();
@@ -217,7 +221,9 @@ impl Lexer {
                     exception::LexerException::new(
                         self.clone(),
                         exception::LexerExceptionType::InvalidEscape,
-                        format!("Character `{}{}` can not be escaped.", if (self.ch == '`') {"\\"} else {""}, self.ch)
+                        format!("Character `{}{}` can not be escaped.", if (self.ch == '`') {"\\"} else {""}, self.ch),
+                        self.script.clone(),
+                        data::Range::new(start, self.position.clone())
                     ).dump();
                 }
             };
@@ -227,7 +233,9 @@ impl Lexer {
             exception::LexerException::new(
                 self.clone(),
                 exception::LexerExceptionType::MissingCharacter,
-                format!("Expected character `'` not found.")
+                format!("Expected character `'` not found."),
+                self.script.clone(),
+                data::Range::new(start, self.position.clone())
             ).dump();
         };
         self.push_token_start(
@@ -239,14 +247,15 @@ impl Lexer {
     }
 
     fn start_string(&mut self) -> () {
-        let     start  = self.position;
-        let mut ch     = ' ';
+        let     start  = self.position.clone();
         let mut string = String::new();
         if (self.ch != '"') {
             exception::LexerException::new(
                 self.clone(),
                 exception::LexerExceptionType::MissingCharacter,
-                format!("Expected character `\"` not found.")
+                format!("Expected character `\"` not found."),
+                self.script.clone(),
+                data::Range::new(start, self.position.clone())
             ).dump();
         };
         self.advance();
@@ -263,7 +272,9 @@ impl Lexer {
                         exception::LexerException::new(
                             self.clone(),
                             exception::LexerExceptionType::InvalidEscape,
-                            format!("Character `{}{}` can not be escaped.", if (self.ch == '`') {"\\"} else {""}, self.ch)
+                            format!("Character `{}{}` can not be escaped.", if (self.ch == '`') {"\\"} else {""}, self.ch),
+                            self.script.clone(),
+                            data::Range::new(start, self.position.clone())
                         ).dump();
                     }
                 };
@@ -281,7 +292,9 @@ impl Lexer {
             exception::LexerException::new(
                 self.clone(),
                 exception::LexerExceptionType::MissingCharacter,
-                format!("Expected character `\"` not found.")
+                format!("Expected character `\"` not found."),
+                self.script.clone(),
+                data::Range::new(start, self.position.clone())
             ).dump();
         };
         self.push_token_start(
@@ -293,8 +306,8 @@ impl Lexer {
     }
 
     fn start_number(&mut self) -> () {
-        let     start  = self.position;
-        let mut end    = self.position;
+        let     start  = self.position.clone();
+        let mut end    = self.position.clone();
         let mut number = String::new();
         let mut dots   = 0;
         while ((! self.end) && (
@@ -309,7 +322,7 @@ impl Lexer {
             } else if (self.ch != '_') {
                 number += self.ch.to_string().as_str();
             }
-            end = self.position;
+            end = self.position.clone();
             self.advance();
         }
         if (number.chars().nth(number.len() - 1).unwrap() == '.') {
@@ -339,14 +352,14 @@ impl Lexer {
     fn push_token(&mut self, token : data::TokenType) -> () {
         self.tokens.push(data::Token::new(
             token,
-            data::Range::new(self.position, self.position)
+            data::Range::new(self.position.clone(), self.position.clone())
         ));
     }
 
     fn push_token_start(&mut self, token : data::TokenType, start : data::Position) -> () {
         self.tokens.push(data::Token::new(
             token,
-            data::Range::new(start, self.position)
+            data::Range::new(start, self.position.clone())
         ));
     }
 
@@ -360,7 +373,7 @@ impl Lexer {
     fn push_token_end(&mut self, token : data::TokenType, end : data::Position) -> () {
         self.tokens.push(data::Token::new(
             token,
-            data::Range::new(end, end)
+            data::Range::new(end.clone(), end)
         ));
     }
 

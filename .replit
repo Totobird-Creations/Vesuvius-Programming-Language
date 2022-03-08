@@ -1,0 +1,2 @@
+language = "nix"
+run = "(rustup default nightly) && (cargo build) && (rm ./vesuviuspl || :) && (cp ./target/debug/vesuviuspl ./vesuviuspl)"

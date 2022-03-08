@@ -1,5 +1,5 @@
 [package]
-name    = "vesuvius_programming_language"
+name    = "vesuviuspl"
 version = "0.1.0"
 authors = ["Totobird Creations"]
 edition = "2021"

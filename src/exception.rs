@@ -119,8 +119,8 @@ impl<T : ExceptionType> Exception for CommandLineException<T> {
     fn get_range(&self) -> data::Range {
         let column = self.arguments.get_column(self.index);
         return data::Range {
-            min : column,
-            max : column + self.arguments.get_length(self.index) - 1
+            min : data::Position::new(column, 0, column, String::from("<Void>")),
+            max : data::Position::new(column + self.arguments.get_length(self.index) - 1, 0, column + self.arguments.get_length(self.index) - 1, String::from("<Void>"))
         };
     }
     fn get_title(&self) -> String {
@@ -146,15 +146,17 @@ impl ExceptionType for CommandLineExceptionType {
 
 pub struct LexerException<T : ExceptionType> {
     exception_type : T,
-    filename       : String,
-    message        : String
+    message        : String,
+    script         : String,
+    range          : data::Range
 }
 impl<T : ExceptionType> LexerException<T> {
-    pub fn new(lexer : lexer::Lexer, exception_type : T, message : String) -> LexerException<T> {
+    pub fn new(lexer : lexer::Lexer, exception_type : T, message : String, script : String, range : data::Range) -> LexerException<T> {
         return LexerException {
             exception_type : exception_type,
-            filename       : lexer.filename,
-            message        : message
+            message        : message,
+            script         : script,
+            range          : range
         };
     }
 }
@@ -163,7 +165,7 @@ impl<T : ExceptionType> Exception for LexerException<T> {
         return String::from("LexerException");
     }
     fn get_filename(&self) -> String {
-        return String::from(self.filename.clone());
+        return String::from(self.range.min.filename.clone());
     }
     fn get_context(&self) -> String {
         return String::from("<Void>");
@@ -172,12 +174,13 @@ impl<T : ExceptionType> Exception for LexerException<T> {
         return (0, 0);
     }
     fn get_text(&self) -> String {
-        return String::from("Test Lexer Exception");
+        let mut string = self.script.split("\n").collect::<Vec<&str>>()[self.range.min.line].to_string();
+        return string;
     }
     fn get_range(&self) -> data::Range {
         return data::Range {
-            min : 0,
-            max : 0
+            min : data::Position::new(self.range.min.index, 0, 0, self.range.min.filename.clone()),
+            max : data::Position::new(self.range.max.index, 0, 0, self.range.min.filename.clone())
         };
     }
     fn get_title(&self) -> String {
