@@ -2,16 +2,39 @@ use std;
 
 
 
+pub const ALPHABETIC : &'static str = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+pub const NUMERIC    : &'static str = "0123456789";
+
+
+
+#[derive(Clone)]
 pub struct Range {
-    pub min : u64,
-    pub max : u64
+    pub min : usize,
+    pub max : usize
+}
+impl Range {
+    pub fn new(min : usize, max: usize) -> Range {
+        return Range {
+            min : min,
+            max : max
+        }
+    }
 }
 
 
 
+#[derive(Clone)]
 pub struct Token {
     pub token : TokenType,
     pub range : Range
+}
+impl Token {
+    pub fn new(token : TokenType, range : Range) -> Token {
+        return Token {
+            token : token,
+            range : range
+        }
+    }
 }
 impl std::fmt::Display for Token {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
@@ -20,6 +43,7 @@ impl std::fmt::Display for Token {
 }
 
 #[allow(dead_code)]
+#[derive(Clone)]
 pub enum TokenType {
     Hash,
     LParenthesis,
@@ -87,4 +111,18 @@ impl std::fmt::Display for TokenType {
 
         });
     }
+}
+
+
+
+pub fn calculate_escape(ch : char) -> Option<char> {
+    match (ch) {
+        '\\' => return Some('\\'),
+        'n'  => return Some('\n'),
+        't'  => return Some('\t'),
+        '"'  => return Some('"'),
+        '\'' => return Some('\''),
+        
+        _    => return None
+    };
 }

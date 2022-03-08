@@ -2,6 +2,7 @@ use std;
 use colored::Colorize;
 
 use crate::data;
+use crate::lexer;
 
 
 
@@ -29,7 +30,7 @@ pub trait Exception {
     fn get_prefix(&self) -> String;
     fn get_filename(&self) -> String;
     fn get_context(&self) -> String;
-    fn get_position(&self) -> (u64, u64);
+    fn get_position(&self) -> (usize, usize);
     fn get_text(&self) -> String;
     fn get_range(&self) -> data::Range;
     fn get_title(&self) -> String;
@@ -61,7 +62,7 @@ impl Exception for InternalException {
     fn get_context(&self) -> String {
         return String::from("<Void>");
     }
-    fn get_position(&self) -> (u64, u64) {
+    fn get_position(&self) -> (usize, usize) {
         return (0, 0);
     }
     fn get_text(&self) -> String {
@@ -87,10 +88,10 @@ pub struct CommandLineException<T : ExceptionType> {
     exception_type : T,
     message        : String,
     arguments      : crate::Arguments,
-    index          : u64
+    index          : usize
 }
 impl<T : ExceptionType> CommandLineException<T> {
-    pub fn new(exception_type : T, message : String, arguments : crate::Arguments, index : u64) -> CommandLineException<T> {
+    pub fn new(exception_type : T, message : String, arguments : crate::Arguments, index : usize) -> CommandLineException<T> {
         return CommandLineException {
             exception_type : exception_type,
             message        : message,
@@ -109,7 +110,7 @@ impl<T : ExceptionType> Exception for CommandLineException<T> {
     fn get_context(&self) -> String {
         return String::from("Command Line");
     }
-    fn get_position(&self) -> (u64, u64) {
+    fn get_position(&self) -> (usize, usize) {
         return (0, self.arguments.get_column(self.index));
     }
     fn get_text(&self) -> String {
@@ -137,6 +138,67 @@ impl ExceptionType for CommandLineExceptionType {
     fn get_name(&self) -> String {
         return String::from(match (self) {
             CommandLineExceptionType::FileFailedToRead => "FileFailedToRead"
+        });
+    }
+}
+
+
+
+pub struct LexerException<T : ExceptionType> {
+    exception_type : T,
+    filename       : String,
+    message        : String
+}
+impl<T : ExceptionType> LexerException<T> {
+    pub fn new(lexer : lexer::Lexer, exception_type : T, message : String) -> LexerException<T> {
+        return LexerException {
+            exception_type : exception_type,
+            filename       : lexer.filename,
+            message        : message
+        };
+    }
+}
+impl<T : ExceptionType> Exception for LexerException<T> {
+    fn get_prefix(&self) -> String {
+        return String::from("LexerException");
+    }
+    fn get_filename(&self) -> String {
+        return String::from(self.filename.clone());
+    }
+    fn get_context(&self) -> String {
+        return String::from("<Void>");
+    }
+    fn get_position(&self) -> (usize, usize) {
+        return (0, 0);
+    }
+    fn get_text(&self) -> String {
+        return String::from("Test Lexer Exception");
+    }
+    fn get_range(&self) -> data::Range {
+        return data::Range {
+            min : 0,
+            max : 0
+        };
+    }
+    fn get_title(&self) -> String {
+        return String::from("Internal Exception");
+    }
+    fn get_message(&self) -> String {
+        return self.message.clone();
+    }
+}
+
+pub enum LexerExceptionType {
+    IllegalCharacter,
+    MissingCharacter,
+    InvalidEscape
+}
+impl ExceptionType for LexerExceptionType {
+    fn get_name(&self) -> String {
+        return String::from(match (self) {
+            LexerExceptionType::IllegalCharacter => "IllegalCharacter",
+            LexerExceptionType::MissingCharacter => "MissingCharacter",
+            LexerExceptionType::InvalidEscape    => "InvalidEscape"
         });
     }
 }

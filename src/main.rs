@@ -1,4 +1,5 @@
 #![allow(unused_parens)]
+#![feature(let_chains)]
 
 use std;
 use colored::Colorize;
@@ -7,6 +8,7 @@ mod data;
 mod exception;
 use exception::Exception;
 mod run;
+mod lexer;
 
 
 
@@ -56,23 +58,23 @@ impl Arguments {
         };
         return res.join(" ");
     }
-    pub fn get_column(&self, mut index : u64) -> u64 {
+    pub fn get_column(&self, mut index : usize) -> usize {
         let mut column = 0;
         for value in self.positioned.clone() {
             if (index <= 0) {
                 return column;
             }
             index -= 1;
-            column += (value.len() + 1) as u64;
+            column += value.len() + 1;
         }
         exception::InternalException::new(
             String::from("Invalid Index")
         ).dump();
     }
-    pub fn get_length(&self, mut index : u64) -> u64 {
+    pub fn get_length(&self, mut index : usize) -> usize {
         for value in self.positioned.clone() {
             if (index <= 0) {
-                return value.len() as u64;
+                return value.len();
             }
             index -= 1;
         }
@@ -95,7 +97,7 @@ fn main() -> () {
     if (arguments.positioned.len() <= 0) {
         version();
     };
-    run::run(read(arguments));
+    run::run(arguments.positioned[0].clone(), read(arguments));
 }
 fn version() -> ! {
     println!("{} {}",
