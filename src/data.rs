@@ -8,12 +8,32 @@ pub const NUMERIC    : &'static str = "0123456789";
 
 
 #[derive(Clone)]
+pub struct Position {
+    pub index    : usize,
+    pub line     : usize,
+    pub column   : usize,
+    pub filename : String
+}
+impl Position {
+    pub fn new(index : usize, line : usize, column : usize, filename : String) -> Position {
+        return Position {
+            index    : index,
+            line     : line,
+            column   : column,
+            filename : filename
+        }
+    }
+}
+
+
+
+#[derive(Clone)]
 pub struct Range {
-    pub min : usize,
-    pub max : usize
+    pub min : Position,
+    pub max : Position
 }
 impl Range {
-    pub fn new(min : usize, max: usize) -> Range {
+    pub fn new(min : Position, max : Position) -> Range {
         return Range {
             min : min,
             max : max
@@ -122,7 +142,7 @@ pub fn calculate_escape(ch : char) -> Option<char> {
         't'  => return Some('\t'),
         '"'  => return Some('"'),
         '\'' => return Some('\''),
-        
+
         _    => return None
     };
 }

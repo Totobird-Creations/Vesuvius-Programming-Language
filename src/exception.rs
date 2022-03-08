@@ -11,9 +11,9 @@ pub trait Exception {
         let position = self.get_position();
         let range    = self.get_range();
         let text     = self.get_text();
-        let left     = &text[(0)..((range.min - if (range.min > 0) {1} else {0}) as usize)];
-        let center   = &text[(range.min as usize)..((range.max + 1) as usize)];
-        let right    = &text[((range.max + 1) as usize)..(text.len() as usize)];
+        let left     = &text[(0)..((range.min.column - if (range.min.column > 0) {1} else {0}) as usize)];
+        let center   = &text[(range.min.column)..((range.max.column + 1) as usize)];
+        let right    = &text[((range.max.column + 1) as usize)..(text.len() as usize)];
         let prefix   = format!("{}", self.get_prefix());
         let suffix   = format!("{}: {}", self.get_title(), self.get_message());
         let repeat   = std::cmp::max(prefix.len(), suffix.len()) + 1;
@@ -22,7 +22,7 @@ pub trait Exception {
             "File".blue(), self.get_filename().blue().bold(), "In".blue(), self.get_context().blue().bold(),
             "Line".green(), position.1.to_string().green().bold(), "Column".green(), position.0.to_string().green().bold(),
             left.yellow(), center.yellow().bold(), right.yellow(),
-            " ".repeat(range.min as usize), "^".repeat((range.max - range.min + 1) as usize).yellow(),
+            " ".repeat(range.min.column), "^".repeat((range.max.column - range.min.column + 1) as usize).yellow(),
             format!("= {} {}", suffix.bold(), "=".repeat(std::cmp::max(repeat - suffix.len(), 1))).red()
         );
         std::process::exit(1);
@@ -70,8 +70,8 @@ impl Exception for InternalException {
     }
     fn get_range(&self) -> data::Range {
         return data::Range {
-            min : 0,
-            max : 0
+            min : data::Position::new(0, 0, 0, String::from("<Void>")),
+            max : data::Position::new(0, 0, 0, String::from("<Void>"))
         };
     }
     fn get_title(&self) -> String {

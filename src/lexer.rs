@@ -6,20 +6,23 @@ use crate::exception::Exception;
 
 #[derive(Clone)]
 pub struct Lexer {
-    pub filename : String,
-        script   : String,
-        index    : usize,
-        ch       : char,
-        tokens   : Vec<data::Token>,
-        end      : bool
+    script   : String,
+    position : data::Position,
+    ch       : char,
+    tokens   : Vec<data::Token>,
+    end      : bool
 }
 impl Lexer {
 
     pub fn calculate(filename : String, script : String) -> Vec<data::Token> {
         let mut lexer = Lexer {
-            filename : filename,
-            script   : script,
-            index    : 0,
+            script   : script.replace("\r\n", "\n").replace("\r", "\n"),
+            position : data::Position::new(
+                0,
+                0,
+                0,
+                filename
+            ),
             ch       : ' ',
             tokens   : Vec::new(),
             end      : false
@@ -31,18 +34,18 @@ impl Lexer {
     }
 
     fn advance(&mut self) -> () {
-        self.index += 1;
+        self.position.index  += 1;
+        self.position.column += 1;
         self.update();
-    }
-
-    fn retreat(&mut self) -> () {
-        self.index -= 1;
-        self.update();
+        if (self.ch == '\n') {
+            self.position.line   += 1;
+            self.position.column  = 0;
+        }
     }
 
     fn update(&mut self) -> () {
-        if (self.index < self.script.len()) {
-            self.ch  = self.script.chars().nth(self.index).unwrap();
+        if (self.position.index < self.script.len()) {
+            self.ch  = self.script.chars().nth(self.position.index).unwrap();
             self.end = false;
         } else {
             self.ch  = ' ';
@@ -95,7 +98,7 @@ impl Lexer {
                 self.advance();
             }
             else if (self.ch == ':') {
-                let start = self.index;
+                let start = self.position;
                 self.advance();
                 if (self.ch == ':') {
                     self.push_token_start(data::TokenType::DoubleColon, start);
@@ -123,7 +126,7 @@ impl Lexer {
                 self.advance();
             }
             else if (self.ch == '*') {
-                let start = self.index;
+                let start = self.position;
                 self.advance();
                 if (self.ch == '*') {
                     self.push_token_start(data::TokenType::DoubleAstrisk, start);
@@ -133,7 +136,7 @@ impl Lexer {
                 }
             }
             else if (self.ch == '/') {
-                let start = self.index;
+                let start = self.position;
                 self.advance();
                 if (self.ch == '/') {
                     self.start_eol_comment();
@@ -177,14 +180,14 @@ impl Lexer {
     }
 
     fn start_identifier(&mut self) -> () {
-        let     start      : usize  = self.index;
-        let mut end        : usize  = self.index;
-        let mut identifier : String = String::new();
+        let     start      = self.position;
+        let mut end        = self.position;
+        let mut identifier = String::new();
         while ((! self.end) && (
             (String::from(data::ALPHABETIC) + "_").contains(self.ch)
         )) {
             identifier += self.ch.to_string().as_str();
-            end = self.index;
+            end = self.position;
             self.advance();
         }
         self.push_token_start_end(
@@ -194,8 +197,8 @@ impl Lexer {
     }
 
     fn start_character(&mut self) -> () {
-        let     start : usize = self.index;
-        let mut ch    : char  = ' ';
+        let     start = self.position;
+        let mut ch    = ' ';
         if (self.ch != '\'') {
             exception::LexerException::new(
                 self.clone(),
@@ -236,9 +239,9 @@ impl Lexer {
     }
 
     fn start_string(&mut self) -> () {
-        let     start  : usize  = self.index;
-        let mut ch     : char   = ' ';
-        let mut string : String = String::new();
+        let     start  = self.position;
+        let mut ch     = ' ';
+        let mut string = String::new();
         if (self.ch != '"') {
             exception::LexerException::new(
                 self.clone(),
@@ -290,10 +293,10 @@ impl Lexer {
     }
 
     fn start_number(&mut self) -> () {
-        let     start  : usize  = self.index;
-        let mut end    : usize  = self.index;
-        let mut number : String = String::new();
-        let mut dots   : usize  = 0;
+        let     start  = self.position;
+        let mut end    = self.position;
+        let mut number = String::new();
+        let mut dots   = 0;
         while ((! self.end) && (
             (String::from(data::NUMERIC) + "_.").contains(self.ch)
         )) {
@@ -306,19 +309,12 @@ impl Lexer {
             } else if (self.ch != '_') {
                 number += self.ch.to_string().as_str();
             }
-            end = self.index;
-            self.advance();
-        }
-        self.retreat();
-        if (! ['.'].contains(&self.ch)) {
+            end = self.position;
             self.advance();
         }
         if (number.chars().nth(number.len() - 1).unwrap() == '.') {
-            let mut chars = number.chars();
-            chars.next_back();
-            number = chars.as_str().to_string();
+            number += "0";
         }
-        number = number.replace("_", "");
         if (dots == 0) {
             self.push_token_start_end(
                 data::TokenType::Integer(number.parse::<i64>().unwrap()),
@@ -343,25 +339,25 @@ impl Lexer {
     fn push_token(&mut self, token : data::TokenType) -> () {
         self.tokens.push(data::Token::new(
             token,
-            data::Range::new(self.index, self.index)
+            data::Range::new(self.position, self.position)
         ));
     }
 
-    fn push_token_start(&mut self, token : data::TokenType, start : usize) -> () {
+    fn push_token_start(&mut self, token : data::TokenType, start : data::Position) -> () {
         self.tokens.push(data::Token::new(
             token,
-            data::Range::new(start, self.index)
+            data::Range::new(start, self.position)
         ));
     }
 
-    fn push_token_start_end(&mut self, token : data::TokenType, start : usize, end : usize) -> () {
+    fn push_token_start_end(&mut self, token : data::TokenType, start : data::Position, end : data::Position) -> () {
         self.tokens.push(data::Token::new(
             token,
             data::Range::new(start, end)
         ));
     }
 
-    fn push_token_end(&mut self, token : data::TokenType, end : usize) -> () {
+    fn push_token_end(&mut self, token : data::TokenType, end : data::Position) -> () {
         self.tokens.push(data::Token::new(
             token,
             data::Range::new(end, end)
