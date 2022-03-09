@@ -22,7 +22,7 @@ pub trait Exception {
         let     prefix              = format!("{}", self.get_prefix());
         let     suffix              = format!("{}: {}", self.get_title(), self.get_message());
         let     repeat              = std::cmp::max(prefix.len(), suffix.len()) + 1;
-        println!("\n{}\n  {} `{}`, {} {},\n{}{} {}, {} {}\n{}    {}{}{}\n{}    {}{}\n{}{}",
+        println!("\n{}\n   {} `{}`, {} {},\n{} {} {}, {} {}\n{}    {}{}{}\n{}    {}{}\n{} {}",
             format!("═ {} {}", prefix.bold(), "═".repeat(std::cmp::max(repeat - prefix.len(), 1))).red(),
             "File".blue(), self.get_filename().blue().bold(), "In".blue(), self.get_context().blue().bold(),
             "╔═".purple(), "Line".green(), (position.1 + 1).to_string().green().bold(), "Column".green(), (position.0).to_string().green().bold(),
@@ -227,7 +227,7 @@ pub struct ParserException<T : ExceptionType> {
     range          : data::Range
 }
 impl<T : ExceptionType> ParserException<T> {
-    pub fn new(lexer : lexer::Lexer, exception_type : T, message : String, script : String, range : data::Range) -> ParserException<T> {
+    pub fn new(exception_type : T, message : String, script : String, range : data::Range) -> ParserException<T> {
         return ParserException {
             exception_type : exception_type,
             message        : message,

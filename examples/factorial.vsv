@@ -3,6 +3,7 @@
 
 
 extern std;
+extern 10;
 
 const stdout = std::stdout;
 const stdin  = std::stdin;

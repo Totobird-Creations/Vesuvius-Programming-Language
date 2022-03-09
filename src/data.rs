@@ -315,7 +315,7 @@ impl std::fmt::Display for NodeType {
 #[allow(dead_code)]
 #[derive(Clone)]
 pub enum Literal {
-    Access(String),
+    Name(String),
     Character(char),
     String(String),
     Integer(i64),
@@ -325,7 +325,7 @@ impl std::fmt::Display for Literal {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         return write!(f, "{}", match (self) {
 
-            Literal::Access(name)    => name.clone(),
+            Literal::Name(name)      => name.clone(),
             Literal::Character(ch)   => format!("'{}'", ch),
             Literal::String(text)    => format!("\"{}\'", text),
             Literal::Integer(number) => number.to_string(),
