@@ -5,13 +5,13 @@ Type Name            | Rust Equivalent
 ` Int               `|` i64                  `
 ` RInt<I, A>        `|  I < `i64` < A
 ` Float             `|` f64                  `
-` RInt<I, A>        `|  I < `f64` < A
+` RFloat<I, A>      `|  I < `f64` < A
 ` Char              `|` char                 `
-` Str               `|` String               `
+` String            `|` String               `
 ` Tuple<T, ...>     `|` (T, ...)             `
 ` Array<T, L>       `|` [T, L]               `
 ` Func<<A, ...>, R> `|` fn(A, ...) -> R      `
-` Point<T>          `|  Pointer of type T
+` Pointer<T>        `|  Pointer of type T
 
 #### User Defined Types
 Type Name            | Rust Equivalent

@@ -2,8 +2,11 @@
 
 
 
-build stdout = std::stdout;
+extern std;
 
-entry func main() : void {
+const stdout = std::stdout;
+
+#[entry]
+func main() : void {
     print("Hello World!");
 }

@@ -2,8 +2,12 @@
 
 
 
-build stdout = std::stdout;
+extern std;
 
-entry func main() : void {
-    10 + 12.5 |
+const stdout = std::stdout;
+
+#[entry]
+func main() : void {
+    "meeps"
+    '\o'
 }

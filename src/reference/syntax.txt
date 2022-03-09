@@ -35,27 +35,24 @@
 # Parser:
 
 parser:
-- (statement_header SEMICOLON)*
+- (statement_global SEMICOLON)*
 
-statement_header:
-- statement_visibility statement
+statement_global:
 - IDENTIFIER("extern") IDENTIFIER
-- HASH LBRACKET {IDENTIFIER {COMMA IDENTIFIER}*}? RBRACKET statement
+- IDENTIFIER("use") IDENTIFIER
+- statement
+
+statement:
+- {HASH LBRACKET {IDENTIFIER {COMMA IDENTIFIER}*}? RBRACKET SEMICOLON}* statement_visibility (
+    statement_constant | statement_function
+  )
 
 statement_visibility:
 - IDENTIFIER("private")
 - IDENTIFIER("public")
 
-statement:
-- statement_import
-- statement_build
-- statement_function
-
-statement_import:
-- IDENTIFIER("use") IDENTIFIER {COLON IDENTIFIER}*
-
-statement_build:
-- IDENTIFIER("build") IDENTIFIER EQUALS IDENTIFIER {DOUBLECOLON IDENTIFIER}*
+statement_constant:
+- IDENTIFIER("const") IDENTIFIER {COLON type}? EQUALS literal
 
 statement_function:
 - IDENTIFIER("func") IDENTIFIER
@@ -68,35 +65,39 @@ statement_function_argument:
 
 
 expression_base:
-- IDENTIFIER("let") {IDENTIFIER("mut")}* IDENTIFIER {COLON type}? EQUALS expression;
-- expression
+- IDENTIFIER("let") {IDENTIFIER("mut")}* IDENTIFIER {COLON type}? EQUALS expression(false);
+- expression(true)
 
-expression_addition:
-- expression_multiplication {{PLUS | MINUS} expression_multiplication}*
+expression(allow_assign : bool):
+- expression_addition(allow_assign)
 
-expression_multiplication:
-- expression_power {{ASTRISK | SLASH} expression_power}*
+expression_addition(allow_assign : bool):
+- expression_multiplication(allow_assign) {{PLUS | MINUS} expression_multiplication(allow_assign)}*
 
-expression_power:
-- term {DOUBLEASTRISK term}*
+expression_multiplication(allow_assign : bool):
+- expression_power(allow_assign) {{ASTRISK | SLASH} expression_power(allow_assign)}*
 
-term:
-- IDENTIFIER {expression_identifier_mod}* {expression_identifier_action}?
+expression_power(allow_assign : bool):
+- term(allow_assign) {DOUBLEASTRISK term(allow_assign)}*
+
+term(allow_assign : bool):
+- IDENTIFIER {expression_identifier_mod}* {expression_identifier_action(allow_assign)}?
 - literal
 
 
 expression_identifier_mod:
 - DOUBLECOLON IDENTIFIER
 - PERIOD IDENTIFIER
-- LBRACKET expression RBRACKET
-- LPARENTHESIS {expression {COMMA expression}}? RPARENTHESIS
+- LBRACKET expression(false) RBRACKET
+- LPARENTHESIS {expression(false) {COMMA expression(false)}}? RPARENTHESIS
 
-expression_identifier_action:
-- {PLUS | MINUS | ASTRISK | SLASH | DOUBLEASTRISK}? EQUALS expression
+expression_identifier_action(allow_assign : bool):
+- allow_assign == true:
+  {PLUS | MINUS | ASTRISK | SLASH | DOUBLEASTRISK}? EQUALS expression(false)
 
 
 type:
-- IDENTIFIER {LCARAT {type_argument {COMMA type_argument}*}? RCARAT}?
+- IDENTIFIER (DOUBLECOLON IDENTIFIER)* {LCARAT {type_argument {COMMA type_argument}*}? RCARAT}?
 
 type_argument:
 - literal

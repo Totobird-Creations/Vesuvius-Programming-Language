@@ -23,9 +23,9 @@ impl Lexer {
                 0,
                 filename
             ),
-            ch       : ' ',
-            tokens   : Vec::new(),
-            end      : false
+            ch     : ' ',
+            tokens : Vec::new(),
+            end    : false
         };
         lexer.update();
         lexer.start();
@@ -212,6 +212,7 @@ impl Lexer {
         };
         self.advance();
         if (self.ch == '\\') {
+            let ch_start = self.position.clone();
             self.advance();
             match (data::calculate_escape(self.ch)) {
                 Some(new_ch) => {
@@ -223,7 +224,7 @@ impl Lexer {
                         exception::LexerExceptionType::InvalidEscape,
                         format!("Character `{}{}` can not be escaped.", if (self.ch == '`') {"\\"} else {""}, self.ch),
                         self.script.clone(),
-                        data::Range::new(start, self.position.clone())
+                        data::Range::new(ch_start, self.position.clone())
                     ).dump();
                 }
             };

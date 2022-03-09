@@ -9,6 +9,7 @@ mod exception;
 use exception::Exception;
 mod run;
 mod lexer;
+mod parser;
 
 
 

@@ -25,8 +25,6 @@ impl Position {
     }
 }
 
-
-
 #[derive(Clone)]
 pub struct Range {
     pub min : Position,
@@ -38,6 +36,71 @@ impl Range {
             min : min,
             max : max
         }
+    }
+}
+
+#[allow(dead_code)]
+#[derive(Clone)]
+pub enum Type {
+
+    Void,
+    Bool,
+    Int,
+    RInt(i64, i64),
+    Float,
+    RFloat(f64, f64),
+    Char,
+    String,
+    Tuple(Box<Vec<Type>>),
+    Array(Box<Type>, i64),
+    Func(Box<Vec<Type>>, Box<Type>),
+    Pointer(Box<Type>),
+    Name(Vec<String>),
+    Crash,
+    Inferred
+
+}
+impl std::fmt::Display for Type {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        return write!(f, "{}", match (self) {
+
+            Type::Void             => String::from("Void"),
+            Type::Bool             => String::from("Bool"),
+            Type::Int              => String::from("Int"),
+            Type::RInt(min, max)   => format!("RInt<{}, {}>", min, max),
+            Type::Float            => String::from("Float"),
+            Type::RFloat(min, max) => format!("RFloat<{}, {}>", min, max),
+            Type::Char             => String::from("Char"),
+            Type::String           => String::from("String"),
+            Type::Tuple(types)     => {
+                let mut res_types = Vec::new();
+                for i in 0..(types.len()) {
+                    let typ = types[i].clone();
+                    res_types.push(format!("{}", typ));
+                }
+                format!("Tuple<{}>", res_types.join(", "))
+            },
+            Type::Array(typ, len) => {
+                format!("Array<{}, {}>", typ, len)
+            },
+            Type::Func(arg_types, return_type) => {
+                let mut res_arg_types = Vec::new();
+                for i in 0..(arg_types.len()) {
+                    let arg_type = arg_types[i].clone();
+                    res_arg_types.push(format!("{}", arg_type));
+                }
+                format!("Func<{}, {}>", res_arg_types.join(", "), return_type)
+            },
+            Type::Pointer(typ) => {
+                format!("Pointer<{}>", typ)
+            },
+            Type::Name(parts) => {
+                format!("{}", parts.join("::"))
+            },
+            Type::Crash    => String::from("Crash"),
+            Type::Inferred => String::from("Inferred")
+
+        });
     }
 }
 
@@ -55,6 +118,15 @@ impl Token {
             range : range
         }
     }
+    pub fn new_void() -> Token {
+        return Token {
+            token : TokenType::Eof,
+            range : Range::new(
+                Position::new(0, 0, 0, String::new()),
+                Position::new(0, 0, 0, String::new())
+            )
+        }
+    }
 }
 impl std::fmt::Display for Token {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
@@ -65,6 +137,7 @@ impl std::fmt::Display for Token {
 #[allow(dead_code)]
 #[derive(Clone)]
 pub enum TokenType {
+
     Hash,
     LParenthesis,
     RParenthesis,
@@ -94,6 +167,7 @@ pub enum TokenType {
 
     Eol,
     Eof
+
 }
 impl std::fmt::Display for TokenType {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
@@ -128,6 +202,134 @@ impl std::fmt::Display for TokenType {
 
             TokenType::Eol              => String::from(";"),
             TokenType::Eof              => String::from("Eof")
+
+        });
+    }
+}
+
+
+
+#[derive(Clone)]
+pub struct Node {
+    pub node  : NodeType,
+    pub range : Range
+}
+impl Node {
+    pub fn new(node : NodeType, range : Range) -> Node {
+        return Node {
+            node  : node,
+            range : range
+        }
+    }
+}
+impl std::fmt::Display for Node {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        return write!(f, "<{}>", self.node);
+    }
+}
+
+#[allow(dead_code)]
+#[derive(Clone)]
+pub enum NodeType {
+
+    ExternalImport(String),
+    LocalImport(String),
+
+
+    DefineConstant(String, Literal),
+    DefineFunction(String, Vec<(String, Type)>, Type, Box<Vec<Node>>),
+
+
+    InitializeVariable(bool, String, Box<Node>),
+    AssignVariable(Box<Node>, Box<Node>),
+
+    AdditionOperation(Box<Node>, Box<Node>),
+    SubtractionOperation(Box<Node>, Box<Node>),
+    MultiplicationOperation(Box<Node>, Box<Node>),
+    DivisionOperation(Box<Node>, Box<Node>),
+    PowerOperation(Box<Node>, Box<Node>),
+
+
+    ModuleMember(Box<Node>, String),
+    ClassMember(Box<Node>, String),
+    Slice(Box<Node>, Box<Node>),
+    Call(Box<Node>, Box<Vec<Node>>),
+
+
+    Literal(Literal)
+
+}
+impl std::fmt::Display for NodeType {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        return write!(f, "{}", match (self) {
+
+            NodeType::ExternalImport(name) => format!("extern {}", name),
+            NodeType::LocalImport(name)    => format!("use {}", name),
+
+
+            NodeType::DefineConstant(target, value) => format!("const {} = {}", target, value),
+            NodeType::DefineFunction(target, args, return_type, body) => {
+                let mut res_args = Vec::new();
+                for (name, typ) in args.into_iter() {
+                    res_args.push(format!("{}: {}", name, typ));
+                }
+                let mut res_body = Vec::new();
+                for i in 0..(body.len()) {
+                    let expression = body[i].clone();
+                    res_body.push(format!("{}", expression));
+                }
+                format!("func {}({}): {} {{{}}}", target, res_args.join(", "), return_type, res_body.join(" "))
+            },
+
+
+            NodeType::InitializeVariable(mutable, name, value) => format!("let{} {} = {}", if (*mutable) {" mut"} else {""}, name, value),
+            NodeType::AssignVariable(parent, value)            => format!("{} = {}", parent, value),
+
+
+            NodeType::AdditionOperation(left, right)       => format!("({} + {})", left, right),
+            NodeType::SubtractionOperation(left, right)    => format!("({} - {})", left, right),
+            NodeType::MultiplicationOperation(left, right) => format!("({} * {})", left, right),
+            NodeType::DivisionOperation(left, right)       => format!("({} / {})", left, right),
+            NodeType::PowerOperation(left, right)          => format!("({} ** {})", left, right),
+
+
+            NodeType::ModuleMember(parent, name) => format!("{}::{}", parent, name),
+            NodeType::ClassMember(parent, name)  => format!("{}.{}", parent, name),
+            NodeType::Slice(parent, slice)       => format!("{}[{}]", parent, slice),
+            NodeType::Call(parent, args)         => {
+                let mut res_args = Vec::new();
+                for i in 0..(args.len()) {
+                    let arg = args[i].clone();
+                    res_args.push(format!("{}", arg));
+                }
+                format!("{}({})", parent, res_args.join(", "))
+            },
+
+
+            NodeType::Literal(value) => format!("{}", value)
+
+        } + ";");
+    }
+}
+
+#[allow(dead_code)]
+#[derive(Clone)]
+pub enum Literal {
+    Access(String),
+    Character(char),
+    String(String),
+    Integer(i64),
+    Float(f64)
+}
+impl std::fmt::Display for Literal {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        return write!(f, "{}", match (self) {
+
+            Literal::Access(name)    => name.clone(),
+            Literal::Character(ch)   => format!("'{}'", ch),
+            Literal::String(text)    => format!("\"{}\'", text),
+            Literal::Integer(number) => number.to_string(),
+            Literal::Float(number)   => number.to_string()
 
         });
     }

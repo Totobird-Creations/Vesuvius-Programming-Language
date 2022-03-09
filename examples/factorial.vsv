@@ -4,9 +4,9 @@
 
 extern std;
 
-build stdout = std::stdout;
-build stdin  = std::stdin;
-build conv   = std::convert;
+const stdout = std::stdout;
+const stdin  = std::stdin;
+const conv   = std::convert;
 
 #[entry]
 pub func main() : Void {

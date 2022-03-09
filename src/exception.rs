@@ -8,22 +8,27 @@ use crate::lexer;
 
 pub trait Exception {
     fn dump(&self) -> ! {
-        let position = self.get_position();
-        let range    = self.get_range();
-        let text     = self.get_text();
-        let left     = &text[(0)..((range.min.column - if (range.min.column > 0) {1} else {0}) as usize)];
-        let center   = &text[(range.min.column)..((range.max.column + 1) as usize)];
-        let right    = &text[((range.max.column + 1) as usize)..(text.len() as usize)];
-        let prefix   = format!("{}", self.get_prefix());
-        let suffix   = format!("{}: {}", self.get_title(), self.get_message());
-        let repeat   = std::cmp::max(prefix.len(), suffix.len()) + 1;
-        println!("\n{}\n  {} `{}`, {} {},\n  {} {}, {} {}\n    {}{}{}\n    {}{}\n{}",
-            format!("= {} {}", prefix.bold(), "=".repeat(std::cmp::max(repeat - prefix.len(), 1))).red(),
+        let     position            = self.get_position();
+        let     range               = self.get_range();
+        let     real_text           = self.get_text();
+        let     leading_erase_count = get_leading_erase_count(real_text.clone());
+        let mut text                = real_text[leading_erase_count..(real_text.len())].to_string();
+        while ([' ', '\t'].contains(&text.chars().nth(text.len() - 1).unwrap())) {
+            text.pop();
+        }
+        let     left                = &text[0..(range.min.column - leading_erase_count - 1)];
+        let     center              = &text[(range.min.column - leading_erase_count - 1)..(range.max.column - leading_erase_count)];
+        let     right               = &text[(range.max.column - leading_erase_count)..(text.len())];
+        let     prefix              = format!("{}", self.get_prefix());
+        let     suffix              = format!("{}: {}", self.get_title(), self.get_message());
+        let     repeat              = std::cmp::max(prefix.len(), suffix.len()) + 1;
+        println!("\n{}\n  {} `{}`, {} {},\n{}{} {}, {} {}\n{}    {}{}{}\n{}    {}{}\n{}{}",
+            format!("═ {} {}", prefix.bold(), "═".repeat(std::cmp::max(repeat - prefix.len(), 1))).red(),
             "File".blue(), self.get_filename().blue().bold(), "In".blue(), self.get_context().blue().bold(),
-            "Line".green(), position.1.to_string().green().bold(), "Column".green(), position.0.to_string().green().bold(),
-            left.yellow(), center.yellow().bold(), right.yellow(),
-            " ".repeat(range.min.column), "^".repeat((range.max.column - range.min.column + 1) as usize).yellow(),
-            format!("= {} {}", suffix.bold(), "=".repeat(std::cmp::max(repeat - suffix.len(), 1))).red()
+            "╔═".purple(), "Line".green(), (position.1 + 1).to_string().green().bold(), "Column".green(), (position.0).to_string().green().bold(),
+            "║".purple(), left.yellow(), center.yellow().bold(), right.yellow(),
+            "║".purple(), " ".repeat(range.min.column - leading_erase_count - 1), "^".repeat((range.max.column - range.min.column + 1) as usize).yellow(),
+            "╚".purple(), format!("{} {}", suffix.bold(), "═".repeat(std::cmp::max(repeat - suffix.len(), 1))).red()
         );
         std::process::exit(1);
     }
@@ -132,12 +137,16 @@ impl<T : ExceptionType> Exception for CommandLineException<T> {
 }
 
 pub enum CommandLineExceptionType {
+    
     FileFailedToRead
+
 }
 impl ExceptionType for CommandLineExceptionType {
     fn get_name(&self) -> String {
         return String::from(match (self) {
+
             CommandLineExceptionType::FileFailedToRead => "FileFailedToRead"
+
         });
     }
 }
@@ -171,20 +180,19 @@ impl<T : ExceptionType> Exception for LexerException<T> {
         return String::from("<Void>");
     }
     fn get_position(&self) -> (usize, usize) {
-        return (0, 0);
+        return (self.range.min.column, self.range.min.line);
     }
     fn get_text(&self) -> String {
-        let mut string = self.script.split("\n").collect::<Vec<&str>>()[self.range.min.line].to_string();
-        return string;
+        return String::from(self.script.split("\n").collect::<Vec<&str>>()[self.range.min.line]);
     }
     fn get_range(&self) -> data::Range {
         return data::Range {
-            min : data::Position::new(self.range.min.index, 0, 0, self.range.min.filename.clone()),
-            max : data::Position::new(self.range.max.index, 0, 0, self.range.min.filename.clone())
+            min : data::Position::new(self.range.min.index, 0, self.range.min.column, self.range.min.filename.clone()),
+            max : data::Position::new(self.range.max.index, 0, self.range.max.column, self.range.min.filename.clone())
         };
     }
     fn get_title(&self) -> String {
-        return String::from("Internal Exception");
+        return self.exception_type.get_name();
     }
     fn get_message(&self) -> String {
         return self.message.clone();
@@ -192,16 +200,94 @@ impl<T : ExceptionType> Exception for LexerException<T> {
 }
 
 pub enum LexerExceptionType {
+
     IllegalCharacter,
     MissingCharacter,
     InvalidEscape
+
 }
 impl ExceptionType for LexerExceptionType {
     fn get_name(&self) -> String {
         return String::from(match (self) {
+
             LexerExceptionType::IllegalCharacter => "IllegalCharacter",
             LexerExceptionType::MissingCharacter => "MissingCharacter",
             LexerExceptionType::InvalidEscape    => "InvalidEscape"
+
         });
     }
+}
+
+
+
+pub struct ParserException<T : ExceptionType> {
+    exception_type : T,
+    message        : String,
+    script         : String,
+    range          : data::Range
+}
+impl<T : ExceptionType> ParserException<T> {
+    pub fn new(lexer : lexer::Lexer, exception_type : T, message : String, script : String, range : data::Range) -> ParserException<T> {
+        return ParserException {
+            exception_type : exception_type,
+            message        : message,
+            script         : script,
+            range          : range
+        };
+    }
+}
+impl<T : ExceptionType> Exception for ParserException<T> {
+    fn get_prefix(&self) -> String {
+        return String::from("ParserException");
+    }
+    fn get_filename(&self) -> String {
+        return String::from(self.range.min.filename.clone());
+    }
+    fn get_context(&self) -> String {
+        return String::from("<Void>");
+    }
+    fn get_position(&self) -> (usize, usize) {
+        return (self.range.min.column, self.range.min.line);
+    }
+    fn get_text(&self) -> String {
+        return String::from(self.script.split("\n").collect::<Vec<&str>>()[self.range.min.line]);
+    }
+    fn get_range(&self) -> data::Range {
+        return data::Range {
+            min : data::Position::new(self.range.min.index, 0, self.range.min.column, self.range.min.filename.clone()),
+            max : data::Position::new(self.range.max.index, 0, self.range.max.column, self.range.min.filename.clone())
+        };
+    }
+    fn get_title(&self) -> String {
+        return self.exception_type.get_name();
+    }
+    fn get_message(&self) -> String {
+        return self.message.clone();
+    }
+}
+
+pub enum ParserExceptionType {
+
+    MissingToken
+
+}
+impl ExceptionType for ParserExceptionType {
+    fn get_name(&self) -> String {
+        return String::from(match (self) {
+
+            ParserExceptionType::MissingToken => "MissingToken"
+
+        });
+    }
+}
+
+
+
+pub fn get_leading_erase_count(text : String) -> usize {
+    let     chars = text.chars().collect::<Vec<char>>();
+    let mut count = 0;
+    while ((count < chars.len()) && ([' ','\t'].contains(&chars[count]))) {
+        count += 1;
+    }
+    return count;
 }
