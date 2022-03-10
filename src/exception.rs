@@ -131,11 +131,11 @@ impl Exception for InternalException {
 pub struct CommandLineException {
     exception_type : CommandLineExceptionType,
     message        : String,
-    arguments      : crate::Arguments,
+    arguments      : Vec<String>,
     index          : usize
 }
 impl CommandLineException {
-    pub fn new(exception_type : CommandLineExceptionType, message : String, arguments : crate::Arguments, index : usize) -> CommandLineException {
+    pub fn new(exception_type : CommandLineExceptionType, message : String, arguments : Vec<String>, index : usize) -> CommandLineException {
         return CommandLineException {
             exception_type : exception_type,
             message        : message,
@@ -155,16 +155,32 @@ impl Exception for CommandLineException {
         return String::from("Command Line");
     }
     fn get_position(&self) -> (usize, usize) {
-        return (0, self.arguments.get_column(self.index));
+        let mut column = 0;
+        for i in 0..(self.arguments.len()) {
+            let argument = self.arguments[i].clone();
+            if (i == self.index) {
+                break;
+            }
+            column += argument.len() + 1;
+        };
+        return (0, column);
     }
     fn get_text(&self) -> String {
-        return self.arguments.to_string();
+        return self.arguments.join(" ");
     }
     fn get_range(&self) -> data::Range {
-        let column = self.arguments.get_column(self.index);
+        let mut column = 1;
+        for i in 0..(self.arguments.len()) {
+            let argument = self.arguments[i].clone();
+            if (i == self.index) {
+                break;
+            }
+            column += argument.len() + 1;
+        };
+        let arg_len = self.arguments[self.index].len();
         return data::Range {
             min : data::Position::new(column, 0, column, String::from("<Void>")),
-            max : data::Position::new(column + self.arguments.get_length(self.index) - 1, 0, column + self.arguments.get_length(self.index) - 1, String::from("<Void>"))
+            max : data::Position::new(column + arg_len - 1, 0, column + arg_len - 1, String::from("<Void>"))
         };
     }
     fn get_title(&self) -> String {
