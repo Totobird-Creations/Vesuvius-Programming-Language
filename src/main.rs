@@ -70,7 +70,7 @@ impl Arguments {
         }
         exception::InternalException::new(
             String::from("Invalid Index")
-        ).dump();
+        ).dump_critical();
     }
     pub fn get_length(&self, mut index : usize) -> usize {
         for value in self.positioned.clone() {
@@ -81,7 +81,7 @@ impl Arguments {
         }
         exception::InternalException::new(
             String::from("Invalid Index")
-        ).dump();
+        ).dump_critical();
     }
 }
 
@@ -132,7 +132,7 @@ fn read(arguments : Arguments) -> String {
                 format!("File `{}` was not found", filename),
                 arguments,
                 0
-            ).dump();
+            ).dump_error();
         }
     };
 

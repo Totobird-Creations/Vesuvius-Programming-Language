@@ -97,6 +97,11 @@ impl Lexer {
                 self.push_token(data::TokenType::RCarat);
                 self.advance();
             }
+
+            else if (self.ch == '=') {
+                self.push_token(data::TokenType::Equals);
+                self.advance();
+            }
             else if (self.ch == ':') {
                 let start = self.position.clone();
                 self.advance();
@@ -111,9 +116,8 @@ impl Lexer {
                 self.push_token(data::TokenType::Colon);
                 self.advance();
             }
-
-            else if (self.ch == '=') {
-                self.push_token(data::TokenType::Equals);
+            else if (self.ch == ',') {
+                self.push_token(data::TokenType::Comma);
                 self.advance();
             }
 
@@ -168,12 +172,11 @@ impl Lexer {
 
             else {
                 exception::LexerException::new(
-                    self.clone(),
                     exception::LexerExceptionType::IllegalCharacter,
                     format!("Illegal character `{}` found.", self.ch),
                     self.script.clone(),
                     data::Range::new(self.position.clone(), self.position.clone())
-                ).dump();
+                ).dump_error();
             };
 
         };
@@ -203,44 +206,41 @@ impl Lexer {
         let mut ch    = ' ';
         if (self.ch != '\'') {
             exception::LexerException::new(
-                self.clone(),
                 exception::LexerExceptionType::MissingCharacter,
                 format!("Expected character `'` not found."),
                 self.script.clone(),
                 data::Range::new(start, self.position.clone())
-            ).dump();
+            ).dump_error();
         };
         self.advance();
         if (self.ch == '\\') {
             let ch_start = self.position.clone();
             self.advance();
-            match (data::calculate_escape(self.ch)) {
-                Some(new_ch) => {
+            match (self.calculate_escape()) {
+                Ok(new_ch) => {
                     ch = new_ch;
                 },
-                None => {
+                Err(new_ch) => {
                     exception::LexerException::new(
-                        self.clone(),
                         exception::LexerExceptionType::InvalidEscape,
-                        format!("Character `{}{}` can not be escaped.", if (self.ch == '`') {"\\"} else {""}, self.ch),
+                        format!("Discarded escape `{}` not allowed in character literal.", new_ch.replace("\\","\\\\").replace("`","\\`")),
                         self.script.clone(),
                         data::Range::new(ch_start, self.position.clone())
-                    ).dump();
+                    ).dump_error();
                 }
             };
             self.advance();
         }
         if (self.ch != '\'') {
             exception::LexerException::new(
-                self.clone(),
                 exception::LexerExceptionType::MissingCharacter,
                 format!("Expected character `'` not found."),
                 self.script.clone(),
                 data::Range::new(start, self.position.clone())
-            ).dump();
+            ).dump_error();
         };
         self.push_token_start(
-            data::TokenType::Char(ch),
+            data::TokenType::Character(ch),
             start
         );
         self.advance();
@@ -252,37 +252,39 @@ impl Lexer {
         let mut string = String::new();
         if (self.ch != '"') {
             exception::LexerException::new(
-                self.clone(),
                 exception::LexerExceptionType::MissingCharacter,
                 format!("Expected character `\"` not found."),
                 self.script.clone(),
                 data::Range::new(start, self.position.clone())
-            ).dump();
+            ).dump_error();
         };
         self.advance();
-        let mut escape = false;
+        let mut escape       = false;
+        let mut escape_start = self.position.clone();
         while ((! self.end) && (
             escape || self.ch != '"'
         )) {
             if (escape) {
-                match (data::calculate_escape(self.ch)) {
-                    Some(ch) => {
+                match (self.calculate_escape()) {
+                    Ok(ch) => {
                         string += ch.to_string().as_str();
                     },
-                    None => {
+                    Err(ch) => {
                         exception::LexerException::new(
-                            self.clone(),
                             exception::LexerExceptionType::InvalidEscape,
-                            format!("Character `{}{}` can not be escaped.", if (self.ch == '`') {"\\"} else {""}, self.ch),
+                            format!("Discarded escape `{}`.", ch.replace("\\","\\\\").replace("`","\\`")),
                             self.script.clone(),
-                            data::Range::new(start, self.position.clone())
-                        ).dump();
+                            data::Range::new(escape_start.clone(), self.position.clone())
+                        ).dump_warning();
+                        string += "\\";
+                        string += self.ch.to_string().as_str();
                     }
                 };
                 escape = false;
             } else {
                 if (self.ch == '\\') {
                     escape = true;
+                    escape_start = self.position.clone();
                 } else {
                     string += self.ch.to_string().as_str();
                 }
@@ -291,12 +293,11 @@ impl Lexer {
         }
         if (self.end) {
             exception::LexerException::new(
-                self.clone(),
                 exception::LexerExceptionType::MissingCharacter,
                 format!("Expected character `\"` not found."),
                 self.script.clone(),
                 data::Range::new(start, self.position.clone())
-            ).dump();
+            ).dump_error();
         };
         self.push_token_start(
             data::TokenType::String(string),
@@ -304,6 +305,33 @@ impl Lexer {
         );
         self.advance();
         
+    }
+
+    pub fn calculate_escape(&mut self) -> Result<char, String> {
+        return match (self.ch) {
+            '\\' => {
+                Ok('\\')
+            },
+            'n' => {
+                Ok('\n')
+            },
+            't' => {
+                Ok('\t')
+            },
+            '"' => {
+                Ok('"')
+            },
+            '\'' => {
+                Ok('\'')
+            },
+            'r' => {
+                Ok('\r')
+            }
+    
+            _ => {
+                Err(self.ch.to_string())
+            }
+        };
     }
 
     fn start_number(&mut self) -> () {

@@ -1,40 +1,42 @@
 #### Normal Types
-Type Name            | Rust Equivalent
----------------------|------------------------
-` Bool              `|` bool                 `
-` Int               `|` i64                  `
-` RInt<I, A>        `|  I < `i64` < A
-` Float             `|` f64                  `
-` RFloat<I, A>      `|  I < `f64` < A
-` Char              `|` char                 `
-` String            `|` String               `
-` Tuple<T, ...>     `|` (T, ...)             `
-` Array<T, L>       `|` [T, L]               `
-` Func<<A, ...>, R> `|` fn(A, ...) -> R      `
-` Pointer<T>        `|  Pointer of type T
+Type Name            | Rust Equivalent        | Vesuvius
+---------------------|------------------------|-----------------------------------------------------------------------------------------------------
+ `Bool`              | `bool`                 | N/A
+ `Int`               | `i64`                  | INTEGER
+ `RInt<I, A>`        |  I < `i64` < A         | INTEGER
+ `IntRange`          | `i64..i64`             | INTEGER DOUBLEPERIOD INTEGER
+ `Float`             | `f64`                  | FLOAT
+ `RFloat<I, A>`      |  I < `f64` < A         | FLOAT
+ `FloatRange`        | `f64..f64`             | FLOAT DOUBLEPERIOD FLOAT
+ `Char`              | `char`                 | CHARACTER
+ `String`            | `String`               | STRING
+ `Tuple<T, ...>`     | `(T, ...)`             | LCARAT (expression (COMMA expression)*)? RCARAT
+ `Array<T, L>`       | `[T, L]`               | LBRACKET (expression (COMMA expression)*)? RBRACKET
+ `Dict<K, V>`        | `HashMap<K, V>`        | LBRACE (literal COLON expression (literal COLON expression)*) RBRACE
+ `Func<<A, ...>, R>` | `fn(A, ...) -> R`      | IDENTIFIER("func") IDENTIFIER LPAREN (IDENTIFIER COLON TYPE (COMMA IDENTIFIER COLON TYPE)*)? RPAREN
+ `Pointer<T>`        |  Pointer of type T     | N/A
 
 #### User Defined Types
-Type Name            | Rust Equivalent
----------------------|------------------------
-  Class              |  Structure
-  Enum               |  Enumeration
+Type Name            | Rust Equivalent        | Vesuvius
+---------------------|------------------------|-----------------------------------------------------------------------------------------------------
+  Class              |  Structure             | IDENTIFIER("class") IDENTIFIER (IDENTIFIER("extends") IDENTIFIER (COMMA IDENTIFIER)*)?
+  Enum               |  Enumeration           | IDENTIFIER("enum") IDENTIFIER LBRACE (IDENTIFIER (COMMA IDENTIFIER)*)? RBRACE
 
 
-#### Build Types
-Type Name            | Rust Equivalent
----------------------|------------------------
-  Builder            |  -
-  Build              |  Built in objects
+#### External Types
+Type Name            | Rust Equivalent        | Vesuvius
+---------------------|------------------------|-----------------------------------------------------------------------------------------------------
+  Module             |  `mod` or `use`        | (IDENTIFIER("extern") | IDENTIFIER("use")) IDENTIFIER
 
 
 #### Miscellanious Types
-Type Name            | Rust Equivalent
----------------------|------------------------
-` Void              `|  `()`
-` Crash             `|  Never
+Type Name            | Rust Equivalent        | Vesuvius
+---------------------|------------------------|-----------------------------------------------------------------------------------------------------
+ `Void`              |  `()`                  | N/A
+ `Crash`             |  Never                 | N/A
 
 
 #### Internal Types
-Type Name            | Rust Equivalent
----------------------|------------------------
-  Inferred           |  Inferred
+Type Name            | Rust Equivalent        | Vesuvius
+---------------------|------------------------|-----------------------------------------------------------------------------------------------------
+  Inferred           |  Inferred              | N/A

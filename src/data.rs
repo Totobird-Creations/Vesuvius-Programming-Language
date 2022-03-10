@@ -1,5 +1,8 @@
 use std;
 
+use crate::exception;
+use crate::exception::Exception;
+
 
 
 pub const ALPHABETIC : &'static str = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
@@ -135,7 +138,7 @@ impl std::fmt::Display for Token {
 }
 
 #[allow(dead_code)]
-#[derive(Clone)]
+#[derive(Clone, PartialEq)]
 pub enum TokenType {
 
     Hash,
@@ -147,11 +150,12 @@ pub enum TokenType {
     RBrace,
     LCarat,
     RCarat,
+
     Colon,
+    Equals,
     DoubleColon,
     Period,
-
-    Equals,
+    Comma,
 
     Plus,
     Minus,
@@ -160,7 +164,7 @@ pub enum TokenType {
     DoubleAstrisk,
 
     Identifier(String),
-    Char(char),
+    Character(char),
     String(String),
     Integer(i64),
     Float(f64),
@@ -182,11 +186,12 @@ impl std::fmt::Display for TokenType {
             TokenType::RBrace           => String::from("}"),
             TokenType::LCarat           => String::from("<"),
             TokenType::RCarat           => String::from(">"),
+
             TokenType::Colon            => String::from(":"),
+            TokenType::Equals           => String::from("="),
             TokenType::DoubleColon      => String::from("::"),
             TokenType::Period           => String::from("."),
-
-            TokenType::Equals           => String::from("="),
+            TokenType::Comma            => String::from(","),
 
             TokenType::Plus             => String::from("+"),
             TokenType::Minus            => String::from("-"),
@@ -195,7 +200,7 @@ impl std::fmt::Display for TokenType {
             TokenType::DoubleAstrisk    => String::from("**"),
 
             TokenType::Identifier(name) => name.clone(),
-            TokenType::Char(ch)         => format!("\'{}\'", ch),
+            TokenType::Character(ch)    => format!("\'{}\'", ch),
             TokenType::String(text)     => format!("\"{}\"", text),
             TokenType::Integer(value)   => value.to_string(),
             TokenType::Float(value)     => value.to_string(),
@@ -211,14 +216,16 @@ impl std::fmt::Display for TokenType {
 
 #[derive(Clone)]
 pub struct Node {
-    pub node  : NodeType,
-    pub range : Range
+    pub node    : NodeType,
+    pub range   : Range,
+    pub headers : NodeHeaders
 }
 impl Node {
     pub fn new(node : NodeType, range : Range) -> Node {
         return Node {
-            node  : node,
-            range : range
+            node    : node,
+            range   : range,
+            headers : NodeHeaders::new()
         }
     }
 }
@@ -236,11 +243,10 @@ pub enum NodeType {
     LocalImport(String),
 
 
-    DefineConstant(String, Literal),
     DefineFunction(String, Vec<(String, Type)>, Type, Box<Vec<Node>>),
 
 
-    InitializeVariable(bool, String, Box<Node>),
+    InitializeVariable(bool, String, Type, Box<Node>),
     AssignVariable(Box<Node>, Box<Node>),
 
     AdditionOperation(Box<Node>, Box<Node>),
@@ -267,7 +273,6 @@ impl std::fmt::Display for NodeType {
             NodeType::LocalImport(name)    => format!("use {}", name),
 
 
-            NodeType::DefineConstant(target, value) => format!("const {} = {}", target, value),
             NodeType::DefineFunction(target, args, return_type, body) => {
                 let mut res_args = Vec::new();
                 for (name, typ) in args.into_iter() {
@@ -282,8 +287,8 @@ impl std::fmt::Display for NodeType {
             },
 
 
-            NodeType::InitializeVariable(mutable, name, value) => format!("let{} {} = {}", if (*mutable) {" mut"} else {""}, name, value),
-            NodeType::AssignVariable(parent, value)            => format!("{} = {}", parent, value),
+            NodeType::InitializeVariable(mutable, name, typ, value) => format!("let{} {}: {} = {}", if (*mutable) {" mut"} else {""}, name, typ, value),
+            NodeType::AssignVariable(parent, value)                 => format!("{} = {}", parent, value),
 
 
             NodeType::AdditionOperation(left, right)       => format!("({} + {})", left, right),
@@ -335,16 +340,38 @@ impl std::fmt::Display for Literal {
     }
 }
 
-
-
-pub fn calculate_escape(ch : char) -> Option<char> {
-    match (ch) {
-        '\\' => return Some('\\'),
-        'n'  => return Some('\n'),
-        't'  => return Some('\t'),
-        '"'  => return Some('"'),
-        '\'' => return Some('\''),
-
-        _    => return None
-    };
+#[derive(Clone)]
+pub struct NodeHeaders {
+    pub is_entry  : bool,
+    pub is_static : bool,
+    pub is_public : bool
+}
+impl NodeHeaders {
+    pub fn new() -> NodeHeaders {
+        return NodeHeaders {
+            is_entry  : false,
+            is_static : false,
+            is_public : false
+        }
+    }
+    pub fn from(array : Vec<(String, Range)>, script : String) -> NodeHeaders {
+        let mut headers = NodeHeaders::new();
+        for i in 0..array.len() {
+            let (name, range) = array[i].clone();
+            match (name.as_str()) {
+                "entry"  => headers.is_entry  = true,
+                "static" => headers.is_static = true,
+                "public" => headers.is_public = true,
+                _        => {
+                    exception::ParserException::new(
+                        exception::ParserExceptionType::InvalidHeader,
+                        format!("Invalid header `{}`.", name),
+                        script.clone(),
+                        range
+                    ).dump_warning();
+                }
+            }
+        }
+        return headers;
+    }
 }

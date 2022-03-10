@@ -12,6 +12,7 @@
 - COLON
 - DOUBLECOLON
 - PERIOD
+- DOUBLEPERIOD
 
 - EQUALS
 
@@ -23,7 +24,7 @@
 
 - IDENTIFIER(String)
 
-- CHAR(char)
+- CHARACTER(char)
 - STRING(String)
 - INTEGER(i64)
 - FLOAT(f64)
@@ -43,21 +44,16 @@ statement_global:
 - statement
 
 statement:
-- {HASH LBRACKET {IDENTIFIER {COMMA IDENTIFIER}*}? RBRACKET SEMICOLON}* statement_visibility (
-    statement_constant | statement_function
-  )
+- init_variable(false)
+- {statement_header}* statement_function
 
-statement_visibility:
-- IDENTIFIER("private")
-- IDENTIFIER("public")
-
-statement_constant:
-- IDENTIFIER("const") IDENTIFIER {COLON type}? EQUALS literal
+statement_header:
+- HASH LBRACKET IDENTIFIER RBRACKET
 
 statement_function:
 - IDENTIFIER("func") IDENTIFIER
   LPAREN {statement_function_argument {COMMA statement_function_argument}*}? RPAREN COLON type
-  LBRACE {expression}* RBRACE
+  LBRACE {expression_base}* RBRACE
 
 statement_function_argument:
 - IDENTIFIER COLON type {EQUALS literal}?
@@ -65,7 +61,7 @@ statement_function_argument:
 
 
 expression_base:
-- IDENTIFIER("let") {IDENTIFIER("mut")}* IDENTIFIER {COLON type}? EQUALS expression(false);
+- init_variable(true)
 - expression(true)
 
 expression(allow_assign : bool):
@@ -80,20 +76,26 @@ expression_multiplication(allow_assign : bool):
 expression_power(allow_assign : bool):
 - term(allow_assign) {DOUBLEASTRISK term(allow_assign)}*
 
+
 term(allow_assign : bool):
-- IDENTIFIER {expression_identifier_mod}* {expression_identifier_action(allow_assign)}?
-- literal
+- literal {term_identifier_modifier}* {term_identifier_action(allow_assign)}?
 
-
-expression_identifier_mod:
+term_identifier_modifier:
 - DOUBLECOLON IDENTIFIER
 - PERIOD IDENTIFIER
 - LBRACKET expression(false) RBRACKET
 - LPARENTHESIS {expression(false) {COMMA expression(false)}}? RPARENTHESIS
 
-expression_identifier_action(allow_assign : bool):
+term_identifier_action(allow_assign : bool):
 - allow_assign == true:
   {PLUS | MINUS | ASTRISK | SLASH | DOUBLEASTRISK}? EQUALS expression(false)
+
+
+init_variable(allow_mutable : bool):
+- allow_mutable == true:
+  IDENTIFIER("let") {IDENTIFIER("mut")}* IDENTIFIER {COLON type}? EQUALS expression(false);
+- allow_mutable == false:
+  IDENTIFIER("let") IDENTIFIER {COLON type}? EQUALS expression(false);
 
 
 type:
@@ -103,9 +105,19 @@ type_argument:
 - literal
 - type
 
+
+
+atom:
+- literal
+- INTEGER DOUBLEPERIOD INTEGER
+- FLOAT DOUBLEPERIOD FLOAT
+- LCARAT {expression(false) {COMMA expression(false)}*}? RCARAT
+- LBRACKET {expression(false) {COMMA expression(false)}*}? RBRACKET
+- LBRACE {literal COLON expression(false) {COMMA literal COLON expression(false)}*}? RBRACKET
+
 literal:
 - IDENTIFIER
-- CHAR
+- CHARACTER
 - STRING
 - INTEGER
 - FLOAT

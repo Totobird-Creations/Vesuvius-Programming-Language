@@ -3,14 +3,14 @@
 
 
 extern std;
-extern 10;
 
-const stdout = std::stdout;
-const stdin  = std::stdin;
-const conv   = std::convert;
+let stdout = std::stdout;
+let stdin  = std::stdin;
+let conv   = std::convert;
 
 #[entry]
-pub func main() : Void {
+#[public]
+func main() : Void {
     stdout::write("Enter a number: ");
     stdout::flush();
     let input = stdin::input(filter="[0123456789]+");

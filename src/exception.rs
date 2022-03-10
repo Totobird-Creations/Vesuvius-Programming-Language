@@ -1,36 +1,75 @@
 use std;
+use colored;
 use colored::Colorize;
 
 use crate::data;
-use crate::lexer;
+
+
+
+#[derive(Clone, PartialEq)]
+pub enum ExceptionLevel {
+    Warning,
+    Error,
+    Critical
+}
 
 
 
 pub trait Exception {
-    fn dump(&self) -> ! {
+    fn dump(&self, level : ExceptionLevel) -> () {
+        let     level_name          = match (level) {
+            ExceptionLevel::Warning  => "Warning",
+            ExceptionLevel::Error    => "Exception",
+            ExceptionLevel::Critical => "CriticalException"
+        };
         let     position            = self.get_position();
         let     range               = self.get_range();
         let     real_text           = self.get_text();
         let     leading_erase_count = get_leading_erase_count(real_text.clone());
         let mut text                = real_text[leading_erase_count..(real_text.len())].to_string();
+        let     min_column          = range.min.column;
+        let     max_column          = if (range.max.line == range.min.line) {range.max.column} else {text.len() + 1};
+        // Line 1 & 6
+        let     prefix              = format!("{}{}", self.get_prefix(), level_name);
+        let     suffix              = format!("{}{}: {}", self.get_title(), level_name, self.get_message());
+        let     repeat              = std::cmp::max(prefix.len(), suffix.len()) + 1;
+        // Line 4
         while ([' ', '\t'].contains(&text.chars().nth(text.len() - 1).unwrap())) {
             text.pop();
         }
-        let     left                = &text[0..(range.min.column - leading_erase_count - 1)];
-        let     center              = &text[(range.min.column - leading_erase_count - 1)..(range.max.column - leading_erase_count)];
-        let     right               = &text[(range.max.column - leading_erase_count)..(text.len())];
-        let     prefix              = format!("{}", self.get_prefix());
-        let     suffix              = format!("{}: {}", self.get_title(), self.get_message());
-        let     repeat              = std::cmp::max(prefix.len(), suffix.len()) + 1;
-        println!("\n{}\n   {} `{}`, {} {},\n{} {} {}, {} {}\n{}    {}{}{}\n{}    {}{}\n{} {}",
-            format!("═ {} {}", prefix.bold(), "═".repeat(std::cmp::max(repeat - prefix.len(), 1))).red(),
+        let     left                = &text[0..(min_column - leading_erase_count - 1)];
+        let     center              = &text[(min_column - leading_erase_count - 1)..(max_column - leading_erase_count)];
+        let     right               = &text[(max_column - leading_erase_count)..(text.len())];
+        // Line 5
+        let     underline_count     = max_column - min_column + 1;
+        let     underline           = "▔".repeat(underline_count);
+        // Print
+        println!("\n{}\n  {} `{}`, {} {},\n  {} {}, {} {}\n    {}{}{}\n    {}{}\n{}",
+            self.colourize(format!(" ═ {} {} ", prefix.bold(), "═".repeat(std::cmp::max(repeat - prefix.len(), 1))), level.clone()),
             "File".blue(), self.get_filename().blue().bold(), "In".blue(), self.get_context().blue().bold(),
-            "╔═".purple(), "Line".green(), (position.1 + 1).to_string().green().bold(), "Column".green(), (position.0).to_string().green().bold(),
-            "║".purple(), left.yellow(), center.yellow().bold(), right.yellow(),
-            "║".purple(), " ".repeat(range.min.column - leading_erase_count - 1), "^".repeat((range.max.column - range.min.column + 1) as usize).yellow(),
-            "╚".purple(), format!("{} {}", suffix.bold(), "═".repeat(std::cmp::max(repeat - suffix.len(), 1))).red()
+            "Line".cyan(), (position.1 + 1).to_string().cyan().bold(), "Column".cyan(), (position.0).to_string().cyan().bold(),
+            left.green(), center.green().bold(), right.green(),
+            " ".repeat(min_column - leading_erase_count - 1), underline.green(),
+            self.colourize(format!(" ═ {} {} ", suffix.bold(), "═".repeat(std::cmp::max(repeat - suffix.len(), 1))), level)
         );
+    }
+    fn dump_warning(&self) -> () {
+        self.dump(ExceptionLevel::Warning);
+    }
+    fn dump_error(&self) -> ! {
+        self.dump(ExceptionLevel::Error);
         std::process::exit(1);
+    }
+    fn dump_critical(&self) -> ! {
+        self.dump(ExceptionLevel::Critical);
+        std::process::exit(1);
+    }
+    fn colourize(&self, text : String, level : ExceptionLevel) -> colored::ColoredString {
+        return match (level) {
+            ExceptionLevel::Warning  => text.yellow(),
+            ExceptionLevel::Error    => text.red(),
+            ExceptionLevel::Critical => text.white().on_red()
+        };
     }
     fn get_prefix(&self) -> String;
     fn get_filename(&self) -> String;
@@ -59,7 +98,7 @@ impl InternalException {
 }
 impl Exception for InternalException {
     fn get_prefix(&self) -> String {
-        return String::from("InternalException");
+        return String::from("Internal");
     }
     fn get_filename(&self) -> String {
         return String::from("<Void>");
@@ -80,7 +119,7 @@ impl Exception for InternalException {
         };
     }
     fn get_title(&self) -> String {
-        return String::from("Internal Exception");
+        return String::from("Internal");
     }
     fn get_message(&self) -> String {
         return self.message.clone();
@@ -89,14 +128,14 @@ impl Exception for InternalException {
 
 
 
-pub struct CommandLineException<T : ExceptionType> {
-    exception_type : T,
+pub struct CommandLineException {
+    exception_type : CommandLineExceptionType,
     message        : String,
     arguments      : crate::Arguments,
     index          : usize
 }
-impl<T : ExceptionType> CommandLineException<T> {
-    pub fn new(exception_type : T, message : String, arguments : crate::Arguments, index : usize) -> CommandLineException<T> {
+impl CommandLineException {
+    pub fn new(exception_type : CommandLineExceptionType, message : String, arguments : crate::Arguments, index : usize) -> CommandLineException {
         return CommandLineException {
             exception_type : exception_type,
             message        : message,
@@ -105,9 +144,9 @@ impl<T : ExceptionType> CommandLineException<T> {
         };
     }
 }
-impl<T : ExceptionType> Exception for CommandLineException<T> {
+impl Exception for CommandLineException {
     fn get_prefix(&self) -> String {
-        return String::from("CommandLineException");
+        return String::from("CommandLine");
     }
     fn get_filename(&self) -> String {
         return String::from("<Void>");
@@ -153,14 +192,14 @@ impl ExceptionType for CommandLineExceptionType {
 
 
 
-pub struct LexerException<T : ExceptionType> {
-    exception_type : T,
+pub struct LexerException {
+    exception_type : LexerExceptionType,
     message        : String,
     script         : String,
     range          : data::Range
 }
-impl<T : ExceptionType> LexerException<T> {
-    pub fn new(lexer : lexer::Lexer, exception_type : T, message : String, script : String, range : data::Range) -> LexerException<T> {
+impl LexerException {
+    pub fn new(exception_type : LexerExceptionType, message : String, script : String, range : data::Range) -> LexerException {
         return LexerException {
             exception_type : exception_type,
             message        : message,
@@ -169,9 +208,9 @@ impl<T : ExceptionType> LexerException<T> {
         };
     }
 }
-impl<T : ExceptionType> Exception for LexerException<T> {
+impl Exception for LexerException {
     fn get_prefix(&self) -> String {
-        return String::from("LexerException");
+        return String::from("Lexer");
     }
     fn get_filename(&self) -> String {
         return String::from(self.range.min.filename.clone());
@@ -220,14 +259,14 @@ impl ExceptionType for LexerExceptionType {
 
 
 
-pub struct ParserException<T : ExceptionType> {
-    exception_type : T,
+pub struct ParserException {
+    exception_type : ParserExceptionType,
     message        : String,
     script         : String,
     range          : data::Range
 }
-impl<T : ExceptionType> ParserException<T> {
-    pub fn new(exception_type : T, message : String, script : String, range : data::Range) -> ParserException<T> {
+impl ParserException {
+    pub fn new(exception_type : ParserExceptionType, message : String, script : String, range : data::Range) -> ParserException {
         return ParserException {
             exception_type : exception_type,
             message        : message,
@@ -236,9 +275,9 @@ impl<T : ExceptionType> ParserException<T> {
         };
     }
 }
-impl<T : ExceptionType> Exception for ParserException<T> {
+impl Exception for ParserException {
     fn get_prefix(&self) -> String {
-        return String::from("ParserException");
+        return String::from("Parser");
     }
     fn get_filename(&self) -> String {
         return String::from(self.range.min.filename.clone());
@@ -268,14 +307,18 @@ impl<T : ExceptionType> Exception for ParserException<T> {
 
 pub enum ParserExceptionType {
 
-    MissingToken
+    MissingToken,
+    InvalidHeader,
+    InvalidMutability
 
 }
 impl ExceptionType for ParserExceptionType {
     fn get_name(&self) -> String {
         return String::from(match (self) {
 
-            ParserExceptionType::MissingToken => "MissingToken"
+            ParserExceptionType::MissingToken      => "MissingToken",
+            ParserExceptionType::InvalidHeader     => "InvalidHeader",
+            ParserExceptionType::InvalidMutability => "InvalidMutability"
 
         });
     }

@@ -9,5 +9,6 @@ const stdout = std::stdout;
 #[entry]
 func main() : void {
     "meeps"
-    '\o'
+    "\m"
+    '\p'
 }
