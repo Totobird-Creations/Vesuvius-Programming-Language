@@ -26,26 +26,29 @@ fn run(full_arguments : Vec<String>, index : usize) -> ! {
 }
 
 
-fn version() -> ! {
-    println!("{a}\n {} {}\n {}\n{a}",
+fn version() -> () {
+    println!("\n{a}\n {} {}\n {}\n{a}\n",
         "Vesuvius Programming Language".red().bold(),
         format!("v{}", get_version_number().bold()).yellow(),
         "Totobird Creations".bright_green(),
         a = "══════════════════════════════════════".magenta().dimmed()
     );
-    std::process::exit(0);
 }
 
 
-fn help(arguments : Vec<String>) -> ! {
-    println!("{}\n\n{}:\n  {}\n  {}\n\n{}:\n  {}\n  {}",
-        "Vesuvius Parser & Interpreter".red().bold(),
+fn help(call_argument : String) -> ! {
+    version();
+    println!("{}:\n  {}\n  {}\n\n{}:\n  {}\n  {}\n  {}\n\n{}:\n  {}\n  {}\n",
         "USAGE".blue().bold(),
-        format!("{} {}", arguments[0], "[OPTIONS]*").cyan(),
-        format!("{} {} {}", arguments[0], "[FILENAME]", "[OPTIONS]*").cyan(),
+        format!("{} {}", call_argument, "[FLAG]").cyan(),
+        format!("{} {} {}", call_argument, "[FILENAME]", "[OPTION]*").cyan(),
+        "FLAGS".blue().bold(),
+        format!("{} {}           : {}", "-h".bold(), "--help".bold(), "Display this help message.").cyan(),
+        format!("{} {}        : {}", "-v".bold(), "--version".bold(), "Display the version number.").cyan(),
+        format!("{} : {}", "-cfg.[NAME] [VALUE]".bold(), "Set a global config value.").cyan(),
         "OPTIONS".blue().bold(),
-        format!("{} : {}", "-h".bold(), "Display this help message.").cyan(),
-        format!("{} : {}", "-v".bold(), "Display the version number.").cyan()
+        format!("{} {} : {}", "-V".bold(), "--validate".bold(), "Check script for errors without running.").cyan(),
+        format!("{} {}  : {}", "-C".bold(), "--compile".bold(), "Compile script.").cyan()
     );
     std::process::exit(0);
 }

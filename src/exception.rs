@@ -44,7 +44,7 @@ pub trait Exception {
         let     underline_count     = max_column - min_column + 1;
         let     underline           = "▔".repeat(underline_count);
         // Print
-        println!("\n{}\n  {} `{}`, {} {},\n  {} {}, {} {}\n    {}{}{}\n    {}{}\n{}",
+        println!("\n{}\n  {} `{}`, {} {},\n  {} {}, {} {}\n    {}{}{}\n    {}{}\n{}\n",
             self.colourize(format!(" ═ {} {} ", prefix.bold(), "═".repeat(std::cmp::max(repeat - prefix.len(), 1))), level.clone()),
             "File".blue(), self.get_filename().blue().bold(), "In".blue(), self.get_context().blue().bold(),
             "Line".cyan(), (position.1 + 1).to_string().cyan().bold(), "Column".cyan(), (position.0).to_string().cyan().bold(),
@@ -193,14 +193,20 @@ impl Exception for CommandLineException {
 
 pub enum CommandLineExceptionType {
     
-    FileFailedToRead
+    FileFailedToRead,
+    Argument,
+
+    FutureFeature
 
 }
 impl ExceptionType for CommandLineExceptionType {
     fn get_name(&self) -> String {
         return String::from(match (self) {
 
-            CommandLineExceptionType::FileFailedToRead => "FileFailedToRead"
+            CommandLineExceptionType::FileFailedToRead => "FileFailedToRead",
+            CommandLineExceptionType::Argument         => "Argument",
+            
+            CommandLineExceptionType::FutureFeature    => "FutureFeature"
 
         });
     }
