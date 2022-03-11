@@ -13,6 +13,6 @@ let type   = std::types;
 func main() : type::Void {
     stdout::write("Enter a number: ");
     stdout::flush();
-    let input = stdin::input(filter="[0123456789]+");
-    stdout::writeln("\nFactorial of " + input + ".");
+    let input = stdin::input();
+    stdout::writeln("\nYou inputted: " + input + ".");
 };

@@ -113,7 +113,7 @@ impl Lexer {
                 }
             }
             else if (self.ch == '.') {
-                self.push_token(data::TokenType::Colon);
+                self.push_token(data::TokenType::Period);
                 self.advance();
             }
             else if (self.ch == ',') {

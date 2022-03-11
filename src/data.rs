@@ -48,20 +48,6 @@ impl Range {
     }
 }
 
-#[derive(Clone)]
-pub enum Type {
-    Base(Vec<String>),
-    Inferred
-}
-impl std::fmt::Display for Type {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        return write!(f, "<{}>", match (self) {
-            Type::Base(parts) => parts.join("::"),
-            Type::Inferred    => String::from("?")
-        });
-    }
-}
-
 
 
 #[derive(Clone)]
@@ -183,7 +169,7 @@ impl Node {
 }
 impl std::fmt::Display for Node {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        return write!(f, "<{}>", self.node);
+        return write!(f, "{}", self.node);
     }
 }
 
@@ -235,7 +221,7 @@ impl std::fmt::Display for NodeType {
                 let mut res_body = Vec::new();
                 for i in 0..(body.len()) {
                     let expression = body[i].clone();
-                    res_body.push(format!("{}", expression));
+                    res_body.push(format!("{};", expression));
                 }
                 format!("func {}({}): {} {{{}}}", target, res_args.join(", "), return_type, res_body.join(" "))
             },
@@ -271,11 +257,11 @@ impl std::fmt::Display for NodeType {
                     let base = arguments[i].clone();
                     res_arguments.push(format!("{}", base));
                 }
-                format!("{}{}", base, if (arguments.len() >= 1) {format!("<{}>", res_arguments.join(", "))} else {String::new()})
+                format!("{}{}", base, if (arguments.len() >= 1) {format!("{}", res_arguments.join(", "))} else {String::new()})
             }
             NodeType::Literal(value)        => format!("{}", value)
 
-        } + ";");
+        });
     }
 }
 
@@ -298,6 +284,20 @@ impl std::fmt::Display for Literal {
             Literal::Integer(number) => number.to_string(),
             Literal::Float(number)   => number.to_string()
 
+        });
+    }
+}
+
+#[derive(Clone)]
+pub enum Type {
+    Base(Vec<String>),
+    Inferred
+}
+impl std::fmt::Display for Type {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        return write!(f, "{}", match (self) {
+            Type::Base(parts) => parts.join("::"),
+            Type::Inferred    => String::from("?")
         });
     }
 }

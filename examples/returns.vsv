@@ -20,7 +20,7 @@ func main() : type::Void {
 func get_input(index : type::Int) : type::Int {
     stdout::write("Enter number : " + index.to_string());
     stdout::flush();
-    let input = stdin::input(filter="[0123456789]+").parse_int();
+    let input = stdin::input_integer();
     scope::return(input);
 }
 

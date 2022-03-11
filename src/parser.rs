@@ -331,6 +331,29 @@ impl Parser {
 
     fn start_statement_function_argument(&mut self, data : ParserData) -> (String, data::Node) {
 
+        if (let data::TokenType::Identifier(name) = self.token.token.clone()) {
+            let start = self.token.range.min.clone();
+            
+            self.advance();
+            if (! matches!(self.token.token, data::TokenType::Colon)) {
+                exception::ParserException::new(
+                    exception::ParserExceptionType::MissingToken,
+                    String::from("Expected `:` not found."),
+                    self.script.clone(),
+                    self.token.range.clone()
+                ).dump_error();
+            }
+            self.advance();
+
+            let typ = self.start_type(data);
+
+            return (name, data::Node::new(
+                typ.node.clone(),
+                data::Range::new(start, typ.range.max)
+            ));
+            
+        }
+        
         exception::ParserException::new(
             exception::ParserExceptionType::MissingToken,
             String::from("Expected Identifier not found."),
@@ -543,11 +566,12 @@ impl Parser {
                         self.token.range.clone()
                     ).dump_error();
                 }
-                left = data::Node::new(
-                    data::NodeType::Call(Box::new(left.clone()), Box::new(args)),
-                    data::Range::new(left.range.min, self.token.range.max.clone())
-                );
+                let end = self.token.range.max.clone();
                 self.advance();
+                return data::Node::new(
+                    data::NodeType::Call(Box::new(left.clone()), Box::new(args)),
+                    data::Range::new(left.range.min, end)
+                );
             }
 
             else {
@@ -640,6 +664,16 @@ impl Parser {
                 new_data.allow_assign = false;
                 let value = self.start_expression(new_data);
 
+                if (! matches!(self.token.token, data::TokenType::Eol)) {
+                    exception::ParserException::new(
+                        exception::ParserExceptionType::MissingToken,
+                        String::from("Expected `;` not found."),
+                        self.script.clone(),
+                        self.token.range.clone()
+                    ).dump_error();
+                }
+                self.advance();
+                
                 return data::Node::new(
                     data::NodeType::InitializeVariable(mutable, name.unwrap(), Box::new(typ), Box::new(value.clone())),
                     data::Range::new(start, value.range.max)
