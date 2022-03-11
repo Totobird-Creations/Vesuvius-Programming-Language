@@ -4,8 +4,9 @@ use crate::exception::Exception;
 
 
 pub fn parse(call_argument : String, full_arguments : Vec<String>) -> () {
-    if (full_arguments.len() == 0) {
+    if (full_arguments.len() <= 0) {
         crate::version();
+        std::process::exit(0);
     }
 
     parse_config(call_argument, full_arguments.clone(), full_arguments);

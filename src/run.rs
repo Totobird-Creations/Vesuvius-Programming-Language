@@ -10,6 +10,6 @@ pub fn run(filename : String, script: String) -> () {
 
     let nodes           = parser::Parser::calculate(script, tokens);
 
-    let validated_nodes = validator::Validator::calculate(nodes);
+    validator::Validator::calculate(nodes);
     
 }

@@ -4,24 +4,21 @@
 
 extern std;
 
-let stdout = std::stdout;
-let stdin  = std::stdin;
 let type   = std::types;
+let env    = std::env;
 let scope  = std::scope;
+let stdout = std::stdout;
 
 #[entry]
 #[public]
 func main() : type::Void {
-    let input_1 = get_input(1);
-    let input_2 = get_input(2);
-    let result  = add_ints(input_1, input_2);
+    let arguments = get_arguments();
+    let result = add_ints(arguments[0].parse_int(), arguments[1].parse_int());
+    stdout::writeln(arguments[0] + " + " + arguments[1] + " = " + result.to_string());
 }
 
-func get_input(index : type::Int) : type::Int {
-    stdout::write("Enter number : " + index.to_string());
-    stdout::flush();
-    let input = stdin::input_integer();
-    scope::return(input);
+func get_arguments() : type::List<type::String> {
+    scope::return(env::arguments());
 }
 
 func add_ints(a : type::Int, b : type::Int) : type::Int {

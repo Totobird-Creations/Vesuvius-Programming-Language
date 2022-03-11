@@ -148,7 +148,7 @@ impl Parser {
 
         let mut header_list = Vec::new();
         while (matches!(self.token.token, data::TokenType::Hash)) {
-            header_list.push((self.start_statement_header(data.clone()), self.token.range.clone()));
+            header_list.push((self.start_statement_header(), self.token.range.clone()));
         }
 
         if (let data::TokenType::Identifier(keyword) = self.token.token.clone()) {
@@ -170,7 +170,7 @@ impl Parser {
 
 
 
-    fn start_statement_header(&mut self, data : ParserData) -> String {
+    fn start_statement_header(&mut self) -> String {
 
         if (! matches!(self.token.token, data::TokenType::Hash)) {
             exception::ParserException::new(
@@ -370,7 +370,7 @@ impl Parser {
     fn start_expression_base(&mut self, data : ParserData) -> data::Node {
 
         if (let data::TokenType::Identifier(keyword) = self.token.token.clone()) {
-            let start = self.token.range.min.clone();
+            //let start = self.token.range.min.clone();
 
             if (keyword == String::from("let")) {
                 let mut new_data = data.clone();
@@ -586,9 +586,9 @@ impl Parser {
 
 
 
-    fn start_term_identifier_action(&mut self, data : ParserData) -> data::Node {
+    /*fn start_term_identifier_action(&mut self, _data : ParserData) -> data::Node {
         panic!("Term Identifier Action");
-    }
+    }*/
 
 
 
@@ -724,17 +724,25 @@ impl Parser {
             let mut arguments = Vec::new();
 
             if (matches!(self.token.token, data::TokenType::LCarat)) {
-
                 self.advance();
+
+                if (! matches!(self.token.token, data::TokenType::RCarat)) {
+                    arguments.push(self.start_type(data.clone()));
+                    while (matches!(self.token.token, data::TokenType::Comma)) {
+                        self.advance();
+                        arguments.push(self.start_type(data.clone()));
+                    }
+                }
 
                 if (! matches!(self.token.token, data::TokenType::RCarat)) {
                     exception::ParserException::new(
                         exception::ParserExceptionType::MissingToken,
-                        String::from("Expected `,`, `>` not found."),
+                        format!("Expected {}, `>` not found.", if (arguments.len() >= 1) {"`,`"} else {"type"}),
                         self.script.clone(),
                         self.token.range.clone()
                     ).dump_error();
                 }
+                self.advance();
 
             }
 
@@ -766,7 +774,7 @@ impl Parser {
 
 
 
-    fn start_literal(&mut self, data : ParserData) -> data::Node {
+    fn start_literal(&mut self, _data : ParserData) -> data::Node {
         let range = self.token.range.clone();
         let node  = match (self.token.token.clone()) {
             data::TokenType::Identifier(name) => data::NodeType::Literal(data::Literal::Name(name)),
