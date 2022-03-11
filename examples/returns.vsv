@@ -13,7 +13,7 @@ let stdout = std::stdout;
 #[public]
 func main() : type::Void {
     let arguments = get_arguments();
-    let result = add_ints(arguments[0].parse_int(), arguments[1].parse_int());
+    let result = add_ints(arguments[0].parse_int(), -arguments[1].parse_int());
     stdout::writeln(arguments[0] + " + " + arguments[1] + " = " + result.to_string());
 }
 

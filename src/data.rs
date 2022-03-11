@@ -192,6 +192,7 @@ pub enum NodeType {
     MultiplicationOperation(Box<Node>, Box<Node>), // left, right
     DivisionOperation(Box<Node>, Box<Node>), // left, right
     PowerOperation(Box<Node>, Box<Node>), // left, right
+    InvertOperation(Box<Node>), // value
 
 
     ModuleMember(Box<Node>, String), // parent, child
@@ -236,6 +237,7 @@ impl std::fmt::Display for NodeType {
             NodeType::MultiplicationOperation(left, right) => format!("({} * {})", left, right),
             NodeType::DivisionOperation(left, right)       => format!("({} / {})", left, right),
             NodeType::PowerOperation(left, right)          => format!("({} ** {})", left, right),
+            NodeType::InvertOperation(value)               => format!("(- {})", value),
 
 
             NodeType::ModuleMember(parent, name) => format!("{}::{}", parent, name),

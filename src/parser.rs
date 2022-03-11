@@ -768,7 +768,21 @@ impl Parser {
 
     fn start_atom(&mut self, data : ParserData) -> data::Node {
         
-        return self.start_literal(data.clone());
+        let invert = matches!(self.token.token, data::TokenType::Minus);
+        if (invert) {
+            self.advance();
+        }
+        let start = self.token.range.min.clone();
+
+        let mut value = self.start_literal(data.clone());
+        if (invert) {
+            value = data::Node::new(
+                data::NodeType::InvertOperation(Box::new(value.clone())),
+                data::Range::new(start, value.range.max)
+            );
+        }
+
+        return value;
 
     }
 
