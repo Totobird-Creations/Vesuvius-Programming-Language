@@ -6,11 +6,11 @@ extern std;
 
 let stdout = std::stdout;
 let stdin  = std::stdin;
-let conv   = std::convert;
+let type   = std::types;
 
 #[entry]
 #[public]
-func main() : Void {
+func main() : type::Void {
     stdout::write("Enter a number: ");
     stdout::flush();
     let input = stdin::input(filter="[0123456789]+");

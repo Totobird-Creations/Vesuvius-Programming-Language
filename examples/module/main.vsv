@@ -1,8 +1,0 @@
-// Vesuvius Programming Language : Example / Module
-
-
-
-extern std;
-
-use my_module;
-use test::mymodule2;

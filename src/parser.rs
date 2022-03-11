@@ -240,7 +240,6 @@ impl Parser {
                     ).dump_error();
                 };
                 self.advance();
-
                 if (! matches!(self.token.token, data::TokenType::LParenthesis)) {
                     exception::ParserException::new(
                         exception::ParserExceptionType::MissingToken,
@@ -251,7 +250,70 @@ impl Parser {
                 }
                 self.advance();
 
-                panic!("{}", name);
+                let mut args = Vec::new();
+                if (! matches!(self.token.token, data::TokenType::RParenthesis)) {
+                    args.push(self.start_statement_function_argument(data.clone()));
+                    while (matches!(self.token.token, data::TokenType::Comma)) {
+                        self.advance();
+                        args.push(self.start_statement_function_argument(data.clone()));
+                    }
+                }
+
+                if (! matches!(self.token.token, data::TokenType::RParenthesis)) {
+                    exception::ParserException::new(
+                        exception::ParserExceptionType::MissingToken,
+                        String::from("Expected `,`, `)` not found."),
+                        self.script.clone(),
+                        self.token.range.clone()
+                    ).dump_error();
+                }
+                self.advance();
+
+                if (! matches!(self.token.token, data::TokenType::Colon)) {
+                    exception::ParserException::new(
+                        exception::ParserExceptionType::MissingToken,
+                        String::from("Expected `:` not found."),
+                        self.script.clone(),
+                        self.token.range.clone()
+                    ).dump_error();
+                }
+                self.advance();
+
+                let return_type = self.start_type(data.clone());
+
+                if (! matches!(self.token.token, data::TokenType::LBrace)) {
+                    exception::ParserException::new(
+                        exception::ParserExceptionType::MissingToken,
+                        String::from("Expected `{` not found."),
+                        self.script.clone(),
+                        self.token.range.clone()
+                    ).dump_error();
+                }
+                self.advance();
+
+                let mut content = Vec::new();
+
+                while (! matches!(self.token.token, data::TokenType::RBrace)) {
+                    content.push(self.start_expression_base(data.clone()));
+                }
+
+                let end = self.token.range.max.clone();
+                if (! matches!(self.token.token, data::TokenType::RBrace)) {
+                    exception::ParserException::new(
+                        exception::ParserExceptionType::MissingToken,
+                        String::from("Expected `}` not found."),
+                        self.script.clone(),
+                        self.token.range.clone()
+                    ).dump_error();
+                }
+                self.advance();
+
+                return data::Node::new(
+                    data::NodeType::DefineFunction(
+                        name, Box::new(args), Box::new(return_type), Box::new(content)
+                    ),
+                    data::Range::new(start, end)
+                );
 
             }
 
@@ -267,11 +329,50 @@ impl Parser {
     }
 
 
+    fn start_statement_function_argument(&mut self, data : ParserData) -> (String, data::Node) {
+
+        exception::ParserException::new(
+            exception::ParserExceptionType::MissingToken,
+            String::from("Expected Identifier not found."),
+            self.script.clone(),
+            self.token.range.clone()
+        ).dump_error();
+
+    }
+
+
 
 
 
     fn start_expression_base(&mut self, data : ParserData) -> data::Node {
-        panic!("Expression Base");
+
+        if (let data::TokenType::Identifier(keyword) = self.token.token.clone()) {
+            let start = self.token.range.min.clone();
+
+            if (keyword == String::from("let")) {
+                let mut new_data = data.clone();
+                new_data.allow_mutable = true;
+                return self.start_initialize_variable(new_data);
+            }
+
+        }
+
+        let mut new_data = data.clone();
+        new_data.allow_assign = true;
+        let node = self.start_expression(new_data);
+
+        if (! matches!(self.token.token, data::TokenType::Eol)) {
+            exception::ParserException::new(
+                exception::ParserExceptionType::MissingToken,
+                String::from("Expected `;` not found."),
+                self.script.clone(),
+                self.token.range.clone()
+            ).dump_error();
+        }
+        self.advance();
+
+        return node;
+
     }
 
 
@@ -362,7 +463,7 @@ impl Parser {
 
     fn start_term(&mut self, data : ParserData) -> data::Node {
     
-        let mut left = self.start_literal(data.clone());
+        let mut left = self.start_atom(data.clone());
 
         loop {
 
@@ -430,6 +531,7 @@ impl Parser {
                 if (! matches!(self.token.token, data::TokenType::RParenthesis)) {
                     args.push(self.start_expression(new_data.clone()));
                     while (matches!(self.token.token, data::TokenType::Comma)) {
+                        self.advance();
                         args.push(self.start_expression(new_data.clone()));
                     }
                 }
@@ -514,10 +616,20 @@ impl Parser {
 
                 }
 
+                let (type_set, typ) = if (matches!(self.token.token, data::TokenType::Colon)) {
+                    self.advance();
+                    (true, self.start_type(data.clone()))
+                } else {
+                    (false, data::Node::new(
+                        data::NodeType::Type(data::Type::Inferred, Vec::new()),
+                        data::Range::new_void()
+                    ))
+                };
+
                 if (! matches!(self.token.token, data::TokenType::Equals)) {
                     exception::ParserException::new(
                         exception::ParserExceptionType::MissingToken,
-                        String::from("Expected `=` not found."),
+                        format!("Expected {}`=` not found.", if (type_set) {""} else {"`:`, "}),
                         self.script.clone(),
                         self.token.range.clone()
                     ).dump_error();
@@ -529,7 +641,7 @@ impl Parser {
                 let value = self.start_expression(new_data);
 
                 return data::Node::new(
-                    data::NodeType::InitializeVariable(mutable, name.unwrap(), data::Type::Inferred, Box::new(value.clone())),
+                    data::NodeType::InitializeVariable(mutable, name.unwrap(), Box::new(typ), Box::new(value.clone())),
                     data::Range::new(start, value.range.max)
                 );
 
@@ -549,8 +661,63 @@ impl Parser {
 
 
 
-    fn start_type(&mut self, data : ParserData) -> data::Type {
-        panic!("Type");
+    fn start_type(&mut self, data : ParserData) -> data::Node {
+
+        let     start = self.token.range.min.clone();
+        let mut end   = self.token.range.max.clone();
+
+        if (let data::TokenType::Identifier(name) = self.token.token.clone()) {
+            self.advance();
+
+            let mut bases = vec![name];
+
+            while (matches!(self.token.token, data::TokenType::DoubleColon)) {
+                self.advance();
+                if (let data::TokenType::Identifier(sub_name) = self.token.token.clone()) {
+                    bases.push(sub_name);
+                    end = self.token.range.max.clone();
+                    self.advance();
+                } else {
+                    exception::ParserException::new(
+                        exception::ParserExceptionType::MissingToken,
+                        String::from("Expected Identifier not found."),
+                        self.script.clone(),
+                        self.token.range.clone()
+                    ).dump_error();
+                }
+            }
+
+            let mut arguments = Vec::new();
+
+            if (matches!(self.token.token, data::TokenType::LCarat)) {
+
+                self.advance();
+
+                if (! matches!(self.token.token, data::TokenType::RCarat)) {
+                    exception::ParserException::new(
+                        exception::ParserExceptionType::MissingToken,
+                        String::from("Expected `,`, `>` not found."),
+                        self.script.clone(),
+                        self.token.range.clone()
+                    ).dump_error();
+                }
+
+            }
+
+            return data::Node::new(
+                data::NodeType::Type(data::Type::Base(bases), arguments),
+                data::Range::new(start, end)
+            );
+
+        }
+
+        exception::ParserException::new(
+            exception::ParserExceptionType::MissingToken,
+            String::from("Expected Identifier not found."),
+            self.script.clone(),
+            self.token.range.clone()
+        ).dump_error();
+
     }
 
 
@@ -558,7 +725,9 @@ impl Parser {
 
 
     fn start_atom(&mut self, data : ParserData) -> data::Node {
-        panic!("Atom");
+        
+        return self.start_literal(data.clone());
+
     }
 
 

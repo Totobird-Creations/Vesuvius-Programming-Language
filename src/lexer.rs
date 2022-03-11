@@ -189,7 +189,7 @@ impl Lexer {
         let mut end        = self.position.clone();
         let mut identifier = String::new();
         while ((! self.end) && (
-            (String::from(data::ALPHABETIC) + "_").contains(self.ch)
+            (String::from(data::ALPHABETIC) + data::NUMERIC + "_").contains(self.ch)
         )) {
             identifier += self.ch.to_string().as_str();
             end = self.position.clone();

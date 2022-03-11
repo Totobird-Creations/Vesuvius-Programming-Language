@@ -58,11 +58,13 @@ pub trait Exception {
     }
     fn dump_error(&self) -> ! {
         self.dump(ExceptionLevel::Error);
-        std::process::exit(1);
+        //std::process::exit(1);
+        panic!();
     }
     fn dump_critical(&self) -> ! {
         self.dump(ExceptionLevel::Critical);
-        std::process::exit(1);
+        //std::process::exit(1);
+        panic!();
     }
     fn colourize(&self, text : String, level : ExceptionLevel) -> colored::ColoredString {
         return match (level) {

@@ -1,13 +1,14 @@
-// Vesuvius Programming Language : Example / Hello World
+// Vesuvius Programming Language : Example / Invalid Char
 
 
 
 extern std;
 
-const stdout = std::stdout;
+let type = std::types;
 
 #[entry]
-func main() : void {
+#[public]
+func main() : type::Void {
     "meeps"
     "\m"
     '\p'

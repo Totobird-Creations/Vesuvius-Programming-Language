@@ -40,69 +40,24 @@ impl Range {
             max : max
         }
     }
+    pub fn new_void() -> Range {
+        return Range::new(
+            Position::new(0, 0, 0, String::new()),
+            Position::new(0, 0, 0, String::new())
+        );
+    }
 }
 
-#[allow(dead_code)]
 #[derive(Clone)]
 pub enum Type {
-
-    Void,
-    Bool,
-    Int,
-    RInt(i64, i64),
-    Float,
-    RFloat(f64, f64),
-    Char,
-    String,
-    Tuple(Box<Vec<Type>>),
-    Array(Box<Type>, i64),
-    Func(Box<Vec<Type>>, Box<Type>),
-    Pointer(Box<Type>),
-    Name(Vec<String>),
-    Crash,
+    Base(Vec<String>),
     Inferred
-
 }
 impl std::fmt::Display for Type {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        return write!(f, "{}", match (self) {
-
-            Type::Void             => String::from("Void"),
-            Type::Bool             => String::from("Bool"),
-            Type::Int              => String::from("Int"),
-            Type::RInt(min, max)   => format!("RInt<{}, {}>", min, max),
-            Type::Float            => String::from("Float"),
-            Type::RFloat(min, max) => format!("RFloat<{}, {}>", min, max),
-            Type::Char             => String::from("Char"),
-            Type::String           => String::from("String"),
-            Type::Tuple(types)     => {
-                let mut res_types = Vec::new();
-                for i in 0..(types.len()) {
-                    let typ = types[i].clone();
-                    res_types.push(format!("{}", typ));
-                }
-                format!("Tuple<{}>", res_types.join(", "))
-            },
-            Type::Array(typ, len) => {
-                format!("Array<{}, {}>", typ, len)
-            },
-            Type::Func(arg_types, return_type) => {
-                let mut res_arg_types = Vec::new();
-                for i in 0..(arg_types.len()) {
-                    let arg_type = arg_types[i].clone();
-                    res_arg_types.push(format!("{}", arg_type));
-                }
-                format!("Func<{}, {}>", res_arg_types.join(", "), return_type)
-            },
-            Type::Pointer(typ) => {
-                format!("Pointer<{}>", typ)
-            },
-            Type::Name(parts) => {
-                format!("{}", parts.join("::"))
-            },
-            Type::Crash    => String::from("Crash"),
-            Type::Inferred => String::from("Inferred")
-
+        return write!(f, "<{}>", match (self) {
+            Type::Base(parts) => parts.join("::"),
+            Type::Inferred    => String::from("?")
         });
     }
 }
@@ -124,10 +79,7 @@ impl Token {
     pub fn new_void() -> Token {
         return Token {
             token : TokenType::Eof,
-            range : Range::new(
-                Position::new(0, 0, 0, String::new()),
-                Position::new(0, 0, 0, String::new())
-            )
+            range : Range::new_void()
         }
     }
 }
@@ -239,30 +191,31 @@ impl std::fmt::Display for Node {
 #[derive(Clone)]
 pub enum NodeType {
 
-    ExternalImport(String),
-    LocalImport(String),
+    ExternalImport(String), // module_name
+    LocalImport(String),    // filename
 
 
-    DefineFunction(String, Vec<(String, Type)>, Type, Box<Vec<Node>>),
+    DefineFunction(String, Box<Vec<(String, Node)>>, Box<Node>, Box<Vec<Node>>), // name, args(name, type), return_type, content
 
 
-    InitializeVariable(bool, String, Type, Box<Node>),
-    AssignVariable(Box<Node>, Box<Node>),
+    InitializeVariable(bool, String, Box<Node>, Box<Node>), // mutable, name, type, value
+    AssignVariable(Box<Node>, Box<Node>),              // node, value
 
-    AdditionOperation(Box<Node>, Box<Node>),
-    SubtractionOperation(Box<Node>, Box<Node>),
-    MultiplicationOperation(Box<Node>, Box<Node>),
-    DivisionOperation(Box<Node>, Box<Node>),
-    PowerOperation(Box<Node>, Box<Node>),
-
-
-    ModuleMember(Box<Node>, String),
-    ClassMember(Box<Node>, String),
-    Slice(Box<Node>, Box<Node>),
-    Call(Box<Node>, Box<Vec<Node>>),
+    AdditionOperation(Box<Node>, Box<Node>), // left, right
+    SubtractionOperation(Box<Node>, Box<Node>), // left, right
+    MultiplicationOperation(Box<Node>, Box<Node>), // left, right
+    DivisionOperation(Box<Node>, Box<Node>), // left, right
+    PowerOperation(Box<Node>, Box<Node>), // left, right
 
 
-    Literal(Literal)
+    ModuleMember(Box<Node>, String), // parent, child
+    ClassMember(Box<Node>, String), // parent, child
+    Slice(Box<Node>, Box<Node>), // parent, slice
+    Call(Box<Node>, Box<Vec<Node>>), // parent, call
+
+
+    Type(Type, Vec<Node>), // base, arguments
+    Literal(Literal) // value
 
 }
 impl std::fmt::Display for NodeType {
@@ -275,7 +228,8 @@ impl std::fmt::Display for NodeType {
 
             NodeType::DefineFunction(target, args, return_type, body) => {
                 let mut res_args = Vec::new();
-                for (name, typ) in args.into_iter() {
+                for i in 0..(args.len()) {
+                    let (name, typ) = args[i].clone();
                     res_args.push(format!("{}: {}", name, typ));
                 }
                 let mut res_body = Vec::new();
@@ -311,7 +265,15 @@ impl std::fmt::Display for NodeType {
             },
 
 
-            NodeType::Literal(value) => format!("{}", value)
+            NodeType::Type(base, arguments) => {
+                let mut res_arguments = Vec::new();
+                for i in 0..(arguments.len()) {
+                    let base = arguments[i].clone();
+                    res_arguments.push(format!("{}", base));
+                }
+                format!("{}{}", base, if (arguments.len() >= 1) {format!("<{}>", res_arguments.join(", "))} else {String::new()})
+            }
+            NodeType::Literal(value)        => format!("{}", value)
 
         } + ";");
     }

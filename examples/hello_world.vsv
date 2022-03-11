@@ -4,9 +4,11 @@
 
 extern std;
 
-const stdout = std::stdout;
+let stdout = std::stdout;
+let type   = std::types;
 
 #[entry]
-func main() : void {
+#[public]
+func main() : type::Void {
     print("Hello World!");
 }

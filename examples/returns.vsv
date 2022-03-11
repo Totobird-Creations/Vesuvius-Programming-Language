@@ -1,0 +1,29 @@
+// Vesuvius Programming Language : Example / Returns
+
+
+
+extern std;
+
+let stdout = std::stdout;
+let stdin  = std::stdin;
+let type   = std::types;
+let scope  = std::scope;
+
+#[entry]
+#[public]
+func main() : type::Void {
+    let input_1 = get_input(1);
+    let input_2 = get_input(2);
+    let result  = add_ints(input_1, input_2);
+}
+
+func get_input(index : type::Int) : type::Int {
+    stdout::write("Enter number : " + index.to_string());
+    stdout::flush();
+    let input = stdin::input(filter="[0123456789]+").parse_int();
+    scope::return(input);
+}
+
+func add_ints(a : type::Int, b : type::Int) : type::Int {
+    scope::return(a + b);
+}

@@ -56,13 +56,13 @@ statement_function:
   LBRACE {expression_base}* RBRACE
 
 statement_function_argument:
-- IDENTIFIER COLON type {EQUALS literal}?
+- IDENTIFIER COLON type
 
 
 
 expression_base:
-- init_variable(true)
-- expression(true)
+- (init_variable(true) | expression(true)
+  ) SEMICOLON
 
 expression(allow_assign : bool):
 - expression_addition(allow_assign)
@@ -78,7 +78,7 @@ expression_power(allow_assign : bool):
 
 
 term(allow_assign : bool):
-- literal {term_identifier_modifier}* {term_identifier_action(allow_assign)}?
+- atom {term_identifier_modifier}* {term_identifier_action(allow_assign)}?
 
 term_identifier_modifier:
 - DOUBLECOLON IDENTIFIER
