@@ -21,7 +21,8 @@ impl Lexer {
                 0,
                 0,
                 0,
-                filename
+                filename,
+                script
             ),
             ch     : ' ',
             tokens : Vec::new(),
@@ -148,6 +149,10 @@ impl Lexer {
                     self.push_token_end(data::TokenType::Slash, start);
                 }
             }
+            else if (self.ch == '!') {
+                self.push_token(data::TokenType::Bang);
+                self.advance();
+            }
 
             else if (data::ALPHABETIC.contains(self.ch)) {
                 self.start_identifier();
@@ -174,7 +179,6 @@ impl Lexer {
                 exception::LexerException::new(
                     exception::LexerExceptionType::IllegalCharacter,
                     format!("Illegal character `{}` found.", self.ch),
-                    self.script.clone(),
                     data::Range::new(self.position.clone(), self.position.clone())
                 ).dump_error();
             };
@@ -208,7 +212,6 @@ impl Lexer {
             exception::LexerException::new(
                 exception::LexerExceptionType::MissingCharacter,
                 format!("Expected character `'` not found."),
-                self.script.clone(),
                 data::Range::new(start, self.position.clone())
             ).dump_error();
         };
@@ -224,7 +227,6 @@ impl Lexer {
                     exception::LexerException::new(
                         exception::LexerExceptionType::InvalidEscape,
                         format!("Discarded escape `{}` not allowed in character literal.", new_ch.replace("\\","\\\\").replace("`","\\`")),
-                        self.script.clone(),
                         data::Range::new(ch_start, self.position.clone())
                     ).dump_error();
                 }
@@ -235,7 +237,6 @@ impl Lexer {
             exception::LexerException::new(
                 exception::LexerExceptionType::MissingCharacter,
                 format!("Expected character `'` not found."),
-                self.script.clone(),
                 data::Range::new(start, self.position.clone())
             ).dump_error();
         };
@@ -254,7 +255,6 @@ impl Lexer {
             exception::LexerException::new(
                 exception::LexerExceptionType::MissingCharacter,
                 format!("Expected character `\"` not found."),
-                self.script.clone(),
                 data::Range::new(start, self.position.clone())
             ).dump_error();
         };
@@ -273,7 +273,6 @@ impl Lexer {
                         exception::LexerException::new(
                             exception::LexerExceptionType::InvalidEscape,
                             format!("Discarded escape `{}`.", ch.replace("\\","\\\\").replace("`","\\`")),
-                            self.script.clone(),
                             data::Range::new(escape_start.clone(), self.position.clone())
                         ).dump_warning();
                         string += "\\";
@@ -295,7 +294,6 @@ impl Lexer {
             exception::LexerException::new(
                 exception::LexerExceptionType::MissingCharacter,
                 format!("Expected character `\"` not found."),
-                self.script.clone(),
                 data::Range::new(start, self.position.clone())
             ).dump_error();
         };

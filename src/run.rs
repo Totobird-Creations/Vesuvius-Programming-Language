@@ -6,9 +6,9 @@ use crate::validator;
 
 pub fn run(filename : String, script: String) -> () {
 
-    let tokens          = lexer::Lexer::calculate(filename, script.clone());
+    let tokens = lexer::Lexer::calculate(filename, script);
 
-    let nodes           = parser::Parser::calculate(script, tokens);
+    let nodes  = parser::Parser::calculate(tokens);
 
     validator::Validator::calculate(nodes);
     

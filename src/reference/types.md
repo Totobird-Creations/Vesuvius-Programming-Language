@@ -4,10 +4,10 @@ Type Name            | Rust Equivalent        | Vesuvius Syntax
  `Bool`              | `bool`                 | N/A
  `Int`               | `i64`                  | INTEGER
  `RInt<I, A>`        |  I < `i64` < A         | INTEGER
- `IntRange`          | `i64..i64`             | INTEGER DOUBLEPERIOD INTEGER
+ `IntRange`          | `i64..i64` with step   | INTEGER DOUBLEPERIOD INTEGER (DOUBLEPERIOD INTEGER)?
  `Float`             | `f64`                  | FLOAT
  `RFloat<I, A>`      |  I < `f64` < A         | FLOAT
- `FloatRange`        | `f64..f64`             | FLOAT DOUBLEPERIOD FLOAT
+ `FloatRange`        | `f64..f64` with step   | FLOAT DOUBLEPERIOD FLOAT (DOUBLEPERIOD FLOAT)?
  `Char`              | `char`                 | CHARACTER
  `String`            | `String`               | STRING
  `Tuple<T, ...>`     | `(T, ...)`             | LCARAT {expression {COMMA expression}*}? RCARAT

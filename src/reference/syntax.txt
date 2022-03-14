@@ -109,8 +109,8 @@ type_argument:
 
 atom:
 - literal
-- INTEGER DOUBLEPERIOD INTEGER
-- FLOAT DOUBLEPERIOD FLOAT
+- INTEGER DOUBLEPERIOD INTEGER {DOUBLEPERIOD INTEGER}?
+- FLOAT DOUBLEPERIOD FLOAT {DOUBLEPERIOD FLOAT}?
 - LCARAT {expression(false) {COMMA expression(false)}*}? RCARAT
 - LBRACKET {expression(false) {COMMA expression(false)}*}? RBRACKET
 - LBRACE {literal COLON expression(false) {COMMA literal COLON expression(false)}*}? RBRACKET
